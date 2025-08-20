@@ -6,46 +6,57 @@ import * as apigw from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as path from 'path';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 
+// スタックに渡すプロパティの型を定義
+export interface InfraStackProps extends cdk.StackProps {
+  envName: 'dev' | 'prod';
+}
+
 export class InfraStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: InfraStackProps) {
     super(scope, id, props);
 
+    const { envName } = props;
+    const suffix = `-${envName}`;
+
+    // 環境に応じた削除ポリシーを決定 (prodではリソースを保持)
+    const removalPolicy = envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
+
     // DynamoDB テーブル
-    const bingoSongsTable = new dynamodb.Table(this, 'BingoSongsTable', {
-      tableName: 'BingoSongsTable',
+    const bingoSongsTable = new dynamodb.Table(this, `BingoSongsTable${suffix}`, {
+      tableName: `BingoSongsTable${suffix}`,
       partitionKey: { name: 'songId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy,
     });
 
-    new dynamodb.Table(this, 'BingoCardsTable', {
-      tableName: 'BingoCardsTable',
+    new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
+      tableName: `BingoCardsTable${suffix}`,
       partitionKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy,
     });
 
-    new dynamodb.Table(this, 'FirstSongGuessTable', {
-      tableName: 'FirstSongGuessTable',
+    new dynamodb.Table(this, `FirstSongGuessTable${suffix}`, {
+      tableName: `FirstSongGuessTable${suffix}`,
       partitionKey: { name: 'guessId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy,
     });
 
-    new dynamodb.Table(this, 'SongRequestsTable', {
-      tableName: 'SongRequestsTable',
+    new dynamodb.Table(this, `SongRequestsTable${suffix}`, {
+      tableName: `SongRequestsTable${suffix}`,
       partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy,
     });
 
     // ビンゴカード生成用のLambda関数
-    const bingoCardGeneratorLambda = new NodejsFunction(this, 'BingoCardGeneratorLambda', {
+    const bingoCardGeneratorLambda = new NodejsFunction(this, `BingoCardGeneratorLambda${suffix}`, {
+      functionName: `BingoCardGeneratorLambda${suffix}`,
       entry: path.join(__dirname, '../../lambda/bingo-card-generator.ts'),
       depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
       handler: 'handler',
@@ -54,82 +65,68 @@ export class InfraStack extends cdk.Stack {
       },
     });
 
-    // Lambda関数にBingoSongsTableへの読み取り権限を付与
     bingoSongsTable.grantReadData(bingoCardGeneratorLambda);
 
-    // --- フロントエンドリソース (CORS設定のためにAPI Gatewayより先に定義する必要があります) ---
-
-    // フロントエンド用S3バケット (プライベート)
-    const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
+    // フロントエンド用S3バケット
+    const frontendBucket = new s3.Bucket(this, `FrontendBucket${suffix}`, {
+      bucketName: `mononofu-bingo-frontend${suffix.toLowerCase()}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy,
+      autoDeleteObjects: envName === 'dev',
     });
 
-    // Origin Access Control (OAC) を作成して、CloudFrontがS3バケットにアクセスできるようにします。
-    // こちらが新しい推奨の書き方です。
-    
-
     // CloudFront ディストリビューション
-    const distribution = new cloudfront.Distribution(this, 'CloudFrontDistribution', {
+    const distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        // 推奨: ブラウザ向けのセキュリティヘッダーを追加
         responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
       },
       defaultRootObject: 'index.html',
-      // SPA（Single Page Application）向けの設定
       errorResponses: [
-        {
-          httpStatus: 403,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-        },
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: '/index.html',
-        },
+        { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
+        { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
       ],
     });
 
-    // --- APIリソース ---
-
-    // LambdaをトリガーするためのAPI Gateway
-    const httpApi = new apigw.HttpApi(this, 'BingoApi', {
+    // API Gateway
+    const httpApi = new apigw.HttpApi(this, `BingoApi${suffix}`, {
+      apiName: `BingoApi${suffix}`,
       corsPreflight: {
         allowHeaders: ['Content-Type'],
         allowMethods: [apigw.CorsHttpMethod.GET, apigw.CorsHttpMethod.POST, apigw.CorsHttpMethod.OPTIONS],
-        // CloudFrontディストリビューションのドメイン名はデプロイ時にしか確定しないため、
-        // CDKの制約上、動的に設定することが難しい場合があります。
-        // '*' を許可するか、CloudFrontにカスタムドメインを設定し、そのドメインを直接指定することを推奨します。
-        allowOrigins: ['*'],
+        allowOrigins: envName === 'prod' ? [`https://${distribution.distributionDomainName}`] : ['*'],
       },
     });
 
     httpApi.addRoutes({
       path: '/generate-card',
       methods: [apigw.HttpMethod.POST],
-      integration: new HttpLambdaIntegration('BingoCardGeneratorIntegration', bingoCardGeneratorLambda),
+      integration: new HttpLambdaIntegration(`BingoCardGeneratorIntegration${suffix}`, bingoCardGeneratorLambda),
     });
 
     // フロントエンドをS3にデプロイ
-    new s3deploy.BucketDeployment(this, 'DeployFrontend', {
+    new s3deploy.BucketDeployment(this, `DeployFrontend${suffix}`, {
       sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))],
       destinationBucket: frontendBucket,
-      distribution: distribution,
+      distribution,
       distributionPaths: ['/*'],
     });
 
-    // APIエンドポイントのURLを出力
-    new cdk.CfnOutput(this, 'ApiEndpoint', {
+    // アウトプット
+    new cdk.CfnOutput(this, `ApiEndpoint${suffix}`, {
       value: httpApi.url!,
+      exportName: `ApiEndpoint${suffix}`,
     });
 
-    // CloudFrontのURLを出力
-    new cdk.CfnOutput(this, 'CloudFrontUrl', {
+    new cdk.CfnOutput(this, `CloudFrontUrl${suffix}`, {
       value: distribution.distributionDomainName,
+      exportName: `CloudFrontUrl${suffix}`,
+    });
+
+    new cdk.CfnOutput(this, `FrontendBucketName${suffix}`, {
+      value: frontendBucket.bucketName,
+      exportName: `FrontendBucketName${suffix}`,
     });
   }
 }

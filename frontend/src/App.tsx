@@ -14,7 +14,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const API_ENDPOINT = 'https://17niea8rge.execute-api.ap-northeast-1.amazonaws.com/generate-card';
+  const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT + '/generate-card';
 
   const handleGenerate = async () => {
     setIsLoading(true);
