@@ -92,3 +92,9 @@ header {
 .shareButton:hover {
   background-color: #0c85d0;
 }
+
+.freeSpot {
+  background-color: #ffdeeb; /* A light pink, for Ayaka Sasaki */
+  font-weight: bold;
+  color: #d0006e; /* A deep pink */
+}

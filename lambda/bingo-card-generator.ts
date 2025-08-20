@@ -37,15 +37,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const response = await docClient.send(command);
     const songs = response.Items;
 
-    if (!songs || songs.length < 25) {
+    if (!songs || songs.length < 24) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ message: `Not enough songs in the database to generate a card. Found only ${songs?.length || 0}.` }),
+        body: JSON.stringify({ message: `Not enough songs in the database to generate a card. Found only ${songs?.length || 0}. Needed 24.` }),
       };
     }
 
     const shuffledSongs = shuffle(songs);
-    const bingoCardSongs = shuffledSongs.slice(0, 25);
+    const bingoCardSongs = shuffledSongs.slice(0, 24);
 
     return {
       statusCode: 200,

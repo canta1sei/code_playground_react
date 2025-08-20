@@ -26,8 +26,17 @@ function App() {
       if (!response.ok) {
         throw new Error('API request failed');
       }
-      const data: Song[] = await response.json();
-      setSongs(data);
+      const fetchedSongs: Song[] = await response.json();
+      
+      // 中央にフリースポットを追加
+      const freeSpot: Song = { songId: 'FREE_SPOT', title: 'FREE' };
+      const newSongs = [
+        ...fetchedSongs.slice(0, 12),
+        freeSpot,
+        ...fetchedSongs.slice(12)
+      ];
+      setSongs(newSongs);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -66,7 +75,9 @@ function App() {
           <>
             <div className={styles.bingoGrid} ref={gridRef}>
               {songs.map((song) => (
-                <div key={song.songId} className={styles.bingoCell}>
+                <div 
+                  key={song.songId} 
+                  className={`${styles.bingoCell} ${song.songId === 'FREE_SPOT' ? styles.freeSpot : ''}`}>
                   {song.title}
                 </div>
               ))}
