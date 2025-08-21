@@ -57,7 +57,10 @@ jobs:
       - name: Get Frontend Bucket Name
         id: get_frontend_bucket_name
         run: |
-          FRONTEND_BUCKET_NAME=$(cd infra && npx cdk output FrontendBucketName${{ env.ENV_NAME }} --json | jq -r '.FrontendBucketName${{ env.ENV_NAME }}')
+          CDK_OUTPUT=$(cd infra && npx cdk output FrontendBucketName${{ env.ENV_NAME }} --json)
+          echo "CDK_OUTPUT: $CDK_OUTPUT" # Debugging: show raw CDK output
+          FRONTEND_BUCKET_NAME=$(echo "$CDK_OUTPUT" | jq -r '.FrontendBucketName${{ env.ENV_NAME }}')
+          echo "Extracted FRONTEND_BUCKET_NAME: $FRONTEND_BUCKET_NAME" # Debugging: show extracted value
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
 
       - name: Get CloudFront Distribution ID
