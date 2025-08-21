@@ -44,30 +44,21 @@ jobs:
         working-directory: infra # infraディレクトリで実行
 
       - name: Deploy CDK Stack
-        run: npx cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never
+        run: npx cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
         working-directory: infra
         id: cdk_deploy # ステップにIDを付与して出力を参照できるようにする
 
-      - name: Get API Endpoint URL
-        id: get_api_endpoint
+      - name: Extract CDK Outputs
+        id: get_outputs
         run: |
           STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          API_ENDPOINT=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint-${{ env.ENV_NAME }}`].OutputValue' --output text)
+          API_ENDPOINT=$(jq -r "."${{ env.STACK_NAME }}"."ApiEndpoint-${{ env.ENV_NAME }}"" cdk-outputs.json)
+          FRONTEND_BUCKET_NAME=$(jq -r "."${{ env.STACK_NAME }}"."FrontendBucketName-${{ env.ENV_NAME }}"" cdk-outputs.json)
+          CLOUDFRONT_DISTRIBUTION_ID=$(jq -r "."${{ env.STACK_NAME }}"."CloudFrontUrl-${{ env.ENV_NAME }}"" cdk-outputs.json)
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
-
-      - name: Get Frontend Bucket Name
-        id: get_frontend_bucket_name
-        run: |
-          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          FRONTEND_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName-${{ env.ENV_NAME }}`].OutputValue' --output text)
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
-
-      - name: Get CloudFront Distribution ID
-        id: get_cloudfront_distribution_id
-        run: |
-          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          CLOUDFRONT_DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl-${{ env.ENV_NAME }}`].OutputValue' --output text)
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+        working-directory: infra
 
       - name: Install Frontend dependencies
         run: npm install
@@ -77,7 +68,7 @@ jobs:
         run: |
           echo "--- Before npm run build ---"
           ls -la
-          VITE_API_ENDPOINT=${{ steps.get_api_endpoint.outputs.API_ENDPOINT }} npm run build
+          VITE_API_ENDPOINT=${{ steps.get_outputs.outputs.API_ENDPOINT }} npm run build
           echo "--- After npm run build ---"
           ls -la
           ls -la dist # Check inside dist if it exists
@@ -85,6 +76,6 @@ jobs:
 
       - name: Deploy Frontend to S3
         run: |
-          aws s3 sync dist s3://${{ steps.get_frontend_bucket_name.outputs.FRONTEND_BUCKET_NAME }} --delete
-          aws cloudfront create-invalidation --distribution-id ${{ steps.get_cloudfront_distribution_id.outputs.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          aws s3 sync dist s3://${{ steps.get_outputs.outputs.FRONTEND_BUCKET_NAME }} --delete
+          aws cloudfront create-invalidation --distribution-id ${{ steps.get_outputs.outputs.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
         working-directory: frontend # frontendディレクトリで実行
