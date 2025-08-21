@@ -40,26 +40,26 @@ jobs:
         working-directory: infra # infraディレクトリで実行
 
       - name: Deploy CDK Stack
-        run: cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never
+        run: npx cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never
         working-directory: infra
         id: cdk_deploy # ステップにIDを付与して出力を参照できるようにする
 
       - name: Get API Endpoint URL
         id: get_api_endpoint
         run: |
-          API_ENDPOINT=$(cd infra && cdk output ApiEndpoint${{ env.ENV_NAME }} --json | jq -r '.ApiEndpoint${{ env.ENV_NAME }}')
+          API_ENDPOINT=$(cd infra && npx cdk output ApiEndpoint${{ env.ENV_NAME }} --json | jq -r '.ApiEndpoint${{ env.ENV_NAME }}')
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
 
       - name: Get Frontend Bucket Name
         id: get_frontend_bucket_name
         run: |
-          FRONTEND_BUCKET_NAME=$(cd infra && cdk output FrontendBucketName${{ env.ENV_NAME }} --json | jq -r '.FrontendBucketName${{ env.ENV_NAME }}')
+          FRONTEND_BUCKET_NAME=$(cd infra && npx cdk output FrontendBucketName${{ env.ENV_NAME }} --json | jq -r '.FrontendBucketName${{ env.ENV_NAME }}')
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
 
       - name: Get CloudFront Distribution ID
         id: get_cloudfront_distribution_id
         run: |
-          CLOUDFRONT_DISTRIBUTION_ID=$(cd infra && cdk output CloudFrontUrl${{ env.ENV_NAME }} --json | jq -r '.CloudFrontUrl${{ env.ENV_NAME }}')
+          CLOUDFRONT_DISTRIBUTION_ID=$(cd infra && npx cdk output CloudFrontUrl${{ env.ENV_NAME }} --json | jq -r '.CloudFrontUrl${{ env.ENV_NAME }}')
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
 
       - name: Install Frontend dependencies
