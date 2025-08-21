@@ -52,9 +52,12 @@ jobs:
         id: get_outputs
         run: |
           STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          API_ENDPOINT=$(jq -r "."$STACK_NAME"."ApiEndpoint${{ env.ENV_NAME }}"" cdk-outputs.json)
-          FRONTEND_BUCKET_NAME=$(jq -r "."$STACK_NAME"."FrontendBucketName${{ env.ENV_NAME }}"" cdk-outputs.json)
-          CLOUDFRONT_DISTRIBUTION_ID=$(jq -r "."$STACK_NAME"."CloudFrontDistributionId${{ env.ENV_NAME }}"" cdk-outputs.json)
+          API_ENDPOINT_KEY="ApiEndpoint${{ env.ENV_NAME }}"
+          FRONTEND_BUCKET_NAME_KEY="FrontendBucketName${{ env.ENV_NAME }}"
+          CLOUDFRONT_DISTRIBUTION_ID_KEY="CloudFrontDistributionId${{ env.ENV_NAME }}"
+          API_ENDPOINT=$(jq -r ".""$STACK_NAME""".""$API_ENDPOINT_KEY""" cdk-outputs.json)
+          FRONTEND_BUCKET_NAME=$(jq -r ".""$STACK_NAME""".""$FRONTEND_BUCKET_NAME_KEY""" cdk-outputs.json)
+          CLOUDFRONT_DISTRIBUTION_ID=$(jq -r ".""$STACK_NAME""".""$CLOUDFRONT_DISTRIBUTION_ID_KEY""" cdk-outputs.json)
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
