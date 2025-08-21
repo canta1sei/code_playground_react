@@ -35,6 +35,10 @@ jobs:
         with:
           node-version: '20' # Node.jsのバージョン
 
+      - name: Install Lambda dependencies
+        run: npm install
+        working-directory: lambda
+
       - name: Install CDK dependencies
         run: npm install
         working-directory: infra # infraディレクトリで実行
