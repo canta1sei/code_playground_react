@@ -51,18 +51,22 @@ jobs:
       - name: Get API Endpoint URL
         id: get_api_endpoint
         run: |
-          API_ENDPOINT=$(cd infra && npx cdk output ApiEndpoint-${{ env.ENV_NAME }} --json | jq -r '.ApiEndpoint-${{ env.ENV_NAME }}')
+          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
+          API_ENDPOINT=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint-${{ env.ENV_NAME }}`].OutputValue' --output text)
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
 
       - name: Get Frontend Bucket Name
         id: get_frontend_bucket_name
         run: |
-          echo "FRONTEND_BUCKET_NAME=mononofu-bingo-frontend-${{ env.ENV_NAME }}" >> $GITHUB_OUTPUT
+          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
+          FRONTEND_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName-${{ env.ENV_NAME }}`].OutputValue' --output text)
+          echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
 
       - name: Get CloudFront Distribution ID
         id: get_cloudfront_distribution_id
         run: |
-          CLOUDFRONT_DISTRIBUTION_ID=$(cd infra && npx cdk output CloudFrontUrl-${{ env.ENV_NAME }} --json | jq -r '.CloudFrontUrl-${{ env.ENV_NAME }}')
+          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
+          CLOUDFRONT_DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl-${{ env.ENV_NAME }}`].OutputValue' --output text)
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
 
       - name: Install Frontend dependencies
