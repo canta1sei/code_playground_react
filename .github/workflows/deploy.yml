@@ -48,25 +48,30 @@ jobs:
         working-directory: infra
         id: cdk_deploy # ステップにIDを付与して出力を参照できるようにする
 
+      - name: Debug all CDK outputs
+        run: |
+          cd infra
+          echo "All available outputs:"
+          npx cdk output --json
+          echo "Checking specific output:"
+          npx cdk output FrontendBucketName${{ env.ENV_NAME }} --json || echo "Output not found"
+
       - name: Get API Endpoint URL
         id: get_api_endpoint
         run: |
-          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          API_ENDPOINT=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint${{ env.ENV_NAME }}`].OutputValue' --output text)
+          API_ENDPOINT=$(cd infra && npx cdk output ApiEndpoint${{ env.ENV_NAME }} --json | jq -r '.ApiEndpoint${{ env.ENV_NAME }}')
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
 
       - name: Get Frontend Bucket Name
         id: get_frontend_bucket_name
         run: |
-          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          FRONTEND_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName${{ env.ENV_NAME }}`].OutputValue' --output text)
+          FRONTEND_BUCKET_NAME=$(cd infra && npx cdk output FrontendBucketName${{ env.ENV_NAME }} --json | jq -r '.FrontendBucketName${{ env.ENV_NAME }}')
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
 
       - name: Get CloudFront Distribution ID
         id: get_cloudfront_distribution_id
         run: |
-          STACK_NAME="InfraStack-${{ env.ENV_NAME }}"
-          CLOUDFRONT_DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl${{ env.ENV_NAME }}`].OutputValue' --output text)
+          CLOUDFRONT_DISTRIBUTION_ID=$(cd infra && npx cdk output CloudFrontUrl${{ env.ENV_NAME }} --json | jq -r '.CloudFrontUrl${{ env.ENV_NAME }}')
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
 
       - name: Install Frontend dependencies
