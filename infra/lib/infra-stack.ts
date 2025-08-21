@@ -105,13 +105,7 @@ export class InfraStack extends cdk.Stack {
       integration: new HttpLambdaIntegration(`BingoCardGeneratorIntegration${suffix}`, bingoCardGeneratorLambda),
     });
 
-    // フロントエンドをS3にデプロイ
-    new s3deploy.BucketDeployment(this, `DeployFrontend${suffix}`, {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))],
-      destinationBucket: frontendBucket,
-      distribution,
-      distributionPaths: ['/*'],
-    });
+    
 
     // アウトプット
     new cdk.CfnOutput(this, `ApiEndpoint${suffix}`, {
