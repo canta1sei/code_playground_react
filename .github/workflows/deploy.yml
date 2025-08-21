@@ -71,7 +71,13 @@ jobs:
         working-directory: frontend
 
       - name: Build Frontend
-        run: VITE_API_ENDPOINT=${{ steps.get_api_endpoint.outputs.API_ENDPOINT }} npm run build
+        run: |
+          echo "--- Before npm run build ---"
+          ls -la
+          VITE_API_ENDPOINT=${{ steps.get_api_endpoint.outputs.API_ENDPOINT }} npm run build
+          echo "--- After npm run build ---"
+          ls -la
+          ls -la dist # Check inside dist if it exists
         working-directory: frontend
 
       - name: Deploy Frontend to S3
