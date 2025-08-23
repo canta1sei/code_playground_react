@@ -1,0 +1,62 @@
+.bingoGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  border: 2px solid #333;
+  padding: 10px;
+  background-color: #f0f0f0;
+  margin-bottom: 1.5rem;
+}
+
+.bingoCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 1px solid #ccc;
+  aspect-ratio: 1 / 1;
+  padding: 8px;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-align: center;
+  /* Make inner div fill the button */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.editableCell {
+  padding: 0;
+  border: 2px dashed transparent; /* Show border on focus */
+  background: none;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border-radius: 0px; 
+  transition: background-color 0.2s;
+}
+
+.editableCell:hover .bingoCell {
+  background-color: #f0e4ff;
+  border-color: #5c2d91;
+}
+
+.editableCell:focus {
+  outline: none;
+}
+
+.editableCell:focus-visible {
+   border: 2px dashed #5c2d91;
+}
+
+.draggingOver .bingoCell {
+  border-style: dashed;
+  border-color: #000;
+  background-color: #e0e0e0;
+}
+
+.freeSpot {
+  background-color: #ffdeeb; /* A light pink, for Ayaka Sasaki */
+  font-weight: bold;
+  color: #d0006e; /* A deep pink */
+}

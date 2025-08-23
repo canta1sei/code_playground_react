@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, DragEvent } from 'react';
 import styles from './App.module.css';
 import html2canvas from 'html2canvas';
-import SongSelectionModal from './SongSelectionModal'; // Import the modal component
+import SongSelectionModal from './SongSelectionModal';
+import BingoGrid from './BingoGrid';
 
 // 曲データの型を定義
 type Song = {
@@ -16,14 +17,18 @@ function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  
+  // ドラッグ＆ドロップ用のstate
+  const draggedItem = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // Modal state
+  // モーダル用のstate
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
-  // Fetch all songs on initial load
+  // 初期ロード時に全曲リストを取得
   useEffect(() => {
     const fetchAllSongs = async () => {
       if (!API_BASE_URL) return;
@@ -87,10 +92,47 @@ function App() {
     setEditingIndex(null);
   };
 
+  // ドラッグ＆ドロップのハンドラ
+  const handleDragStart = (index: number) => {
+    draggedItem.current = index;
+  };
+
+  const handleDragEnter = (index: number) => {
+    if (draggedItem.current !== null && draggedItem.current !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+  
+  const handleDragEnd = () => {
+    draggedItem.current = null;
+    setDragOverIndex(null);
+  }
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedItem.current === null) return;
+
+    const sourceIndex = draggedItem.current;
+    if (sourceIndex !== targetIndex) {
+      const newSongs = [...songs];
+      // 要素を入れ替え
+      const sourceItem = newSongs[sourceIndex];
+      newSongs[sourceIndex] = newSongs[targetIndex];
+      newSongs[targetIndex] = sourceItem;
+      setSongs(newSongs);
+    }
+    // クリーンアップ
+    draggedItem.current = null;
+    setDragOverIndex(null);
+  };
+
   const handleDownloadImage = async () => {
     if (!gridRef.current) return;
-    setIsEditing(false); // Ensure edit styles are not captured
-    await new Promise(resolve => setTimeout(resolve, 100)); // Wait for re-render
+    setIsEditing(false); // 編集中のスタイルがキャプチャされないようにする
+    await new Promise(resolve => setTimeout(resolve, 100)); // 再レンダリングを待つ
 
     const canvas = await html2canvas(gridRef.current);
     const link = document.createElement('a');
@@ -118,26 +160,18 @@ function App() {
         {error && <p className={styles.errorMessage}>エラー: {error}</p>}
         {songs.length > 0 && (
           <>
-            <div className={styles.bingoGrid} ref={gridRef}>
-              {songs.map((song, index) => {
-                const isFreeSpot = song.songId === 'FREE_SPOT';
-                const cellContent = (
-                  <div 
-                    className={`${styles.bingoCell} ${isFreeSpot ? styles.freeSpot : ''}`}>
-                    {song.title}
-                  </div>
-                );
-
-                if (isEditing && !isFreeSpot) {
-                  return (
-                    <button key={song.songId} className={styles.editableCell} onClick={() => handleEditCell(index)}>
-                      {cellContent}
-                    </button>
-                  )
-                }
-                return <div key={song.songId}>{cellContent}</div>;
-              })}
-            </div>
+            <BingoGrid
+              ref={gridRef}
+              songs={songs}
+              isEditing={isEditing}
+              dragOverIndex={dragOverIndex}
+              handleEditCell={handleEditCell}
+              handleDragStart={handleDragStart}
+              handleDragEnter={handleDragEnter}
+              handleDragLeave={handleDragLeave}
+              handleDrop={handleDrop}
+              handleDragEnd={handleDragEnd}
+            />
             <div className={styles.actionsContainer}>
               <button onClick={handleDownloadImage} className={styles.downloadButton}>
                 画像をダウンロード
