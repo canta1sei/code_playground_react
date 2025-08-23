@@ -6,7 +6,9 @@ import * as path from 'path';
 
 // AWSクライアントの設定
 const REGION = 'ap-northeast-1'; // デプロイしたリージョンに合わせてください
-const TABLE_NAME = 'BingoSongsTable';
+const envName = process.env.ENV_NAME || 'dev'; // ENV_NAME環境変数を読み込む、なければ'dev'
+const TABLE_NAME = `BingoSongsTable-${envName}`; // 環境名でテーブル名を動的に変更
+
 
 const client = new DynamoDBClient({ region: REGION });
 const docClient = DynamoDBDocumentClient.from(client);
