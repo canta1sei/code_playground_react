@@ -48,134 +48,80 @@ jobs:
         working-directory: infra
         id: cdk_deploy # ステップにIDを付与して出力を参照できるようにする
 
-      - name: Debug CDK Outputs
-        run: |
-          echo "=== CDK Outputs Debug ==="
-          if [ -f cdk-outputs.json ]; then
-            echo "cdk-outputs.json exists"
-            cat cdk-outputs.json
-            echo ""
-            echo "Pretty printed:"
-            jq '.' cdk-outputs.json
-          else
-            echo "cdk-outputs.json not found!"
-            ls -la
-          fi
-        working-directory: infra
+      
 
       - name: Extract CDK Outputs
         id: get_outputs
         run: |
-          # まず、アウトプットファイルの内容を確認
           if [ ! -f cdk-outputs.json ]; then
             echo "Error: cdk-outputs.json not found"
             exit 1
           fi
           
-          # スタック名のパターンを複数試してみる
+          # Find stack name
           POSSIBLE_STACK_NAMES=(
             "InfraStack-${{ env.ENV_NAME }}"
-            "InfraStack${{ env.ENV_NAME }}" 
-            "infra-stack-${{ env.ENV_NAME }}"
-            "InfraStack"
+            "InfraStack${{ env.ENV_NAME }}"
           )
-          
-          # 実際のスタック名を見つける
           ACTUAL_STACK_NAME=""
           for stack_name in "${POSSIBLE_STACK_NAMES[@]}"; do
             if jq -e --arg stack "$stack_name" 'has($stack)' cdk-outputs.json > /dev/null 2>&1; then
               ACTUAL_STACK_NAME="$stack_name"
-              echo "Found stack: $ACTUAL_STACK_NAME"
               break
             fi
           done
           
           if [ -z "$ACTUAL_STACK_NAME" ]; then
-            echo "Error: Could not find matching stack name"
-            echo "Available stacks:"
+            echo "Error: Could not find matching stack name in cdk-outputs.json"
             jq -r 'keys[]' cdk-outputs.json
             exit 1
           fi
-          
-          # 可能なキー名のパターンを試す
-          POSSIBLE_API_KEYS=(
-            "ApiEndpoint-${{ env.ENV_NAME }}"
-            "ApiEndpoint${{ env.ENV_NAME }}"
-            "apiEndpoint"
-            "ApiEndpoint"
-            "API_ENDPOINT"
-          )
-          
-          POSSIBLE_BUCKET_KEYS=(
-            "FrontendBucketName-${{ env.ENV_NAME }}"
-            "FrontendBucketName${{ env.ENV_NAME }}"
-            "frontendBucketName"
-            "FrontendBucketName"
-            "FRONTEND_BUCKET_NAME"
-          )
-          
-          POSSIBLE_CLOUDFRONT_KEYS=(
-            "CloudFrontDistributionId-${{ env.ENV_NAME }}"
-            "CloudFrontDistributionId${{ env.ENV_NAME }}"
-            "cloudFrontDistributionId"
-            "CloudFrontDistributionId"
-            "CLOUDFRONT_DISTRIBUTION_ID"
-          )
-          
-          # API エンドポイントを取得
-          API_ENDPOINT=""
-          for key in "${POSSIBLE_API_KEYS[@]}"; do
-            value=$(jq -r --arg stack "$ACTUAL_STACK_NAME" --arg key "$key" '.[$stack][$key] // empty' cdk-outputs.json)
-            if [ ! -z "$value" ] && [ "$value" != "null" ]; then
-              API_ENDPOINT="$value"
-              echo "Found API endpoint with key: $key"
-              break
-            fi
-          done
-          
-          # バケット名を取得
-          FRONTEND_BUCKET_NAME=""
-          for key in "${POSSIBLE_BUCKET_KEYS[@]}"; do
-            value=$(jq -r --arg stack "$ACTUAL_STACK_NAME" --arg key "$key" '.[$stack][$key] // empty' cdk-outputs.json)
-            if [ ! -z "$value" ] && [ "$value" != "null" ]; then
-              FRONTEND_BUCKET_NAME="$value"
-              echo "Found bucket name with key: $key"
-              break
-            fi
-          done
-          
-          # CloudFront ID を取得
-          CLOUDFRONT_DISTRIBUTION_ID=""
-          for key in "${POSSIBLE_CLOUDFRONT_KEYS[@]}"; do
-            value=$(jq -r --arg stack "$ACTUAL_STACK_NAME" --arg key "$key" '.[$stack][$key] // empty' cdk-outputs.json)
-            if [ ! -z "$value" ] && [ "$value" != "null" ]; then
-              CLOUDFRONT_DISTRIBUTION_ID="$value"
-              echo "Found CloudFront ID with key: $key"
-              break
-            fi
-          done
-          
-          # 結果を出力
+
+          # Function to find a value by trying possible keys
+          find_output_value() {
+            local stack_name=$1
+            shift
+            local keys=("$@")
+            for key in "${keys[@]}"; do
+              value=$(jq -r --arg stack "$stack_name" --arg key "$key" '.[$stack][$key] // empty' cdk-outputs.json)
+              if [ ! -z "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+              fi
+            done
+          }
+
+          # Define possible keys
+          POSSIBLE_API_KEYS=("ApiEndpoint-${{ env.ENV_NAME }}" "ApiEndpoint${{ env.ENV_NAME }}")
+          POSSIBLE_BUCKET_KEYS=("FrontendBucketName-${{ env.ENV_NAME }}" "FrontendBucketName${{ env.ENV_NAME }}")
+          POSSIBLE_CLOUDFRONT_ID_KEYS=("CloudFrontDistributionId-${{ env.ENV_NAME }}" "CloudFrontDistributionId${{ env.ENV_NAME }}")
+          POSSIBLE_CLOUDFRONT_URL_KEYS=("CloudFrontUrl-${{ env.ENV_NAME }}" "CloudFrontUrl${{ env.ENV_NAME }}")
+
+          # Extract values
+          API_ENDPOINT=$(find_output_value "$ACTUAL_STACK_NAME" "${POSSIBLE_API_KEYS[@]}")
+          FRONTEND_BUCKET_NAME=$(find_output_value "$ACTUAL_STACK_NAME" "${POSSIBLE_BUCKET_KEYS[@]}")
+          CLOUDFRONT_DISTRIBUTION_ID=$(find_output_value "$ACTUAL_STACK_NAME" "${POSSIBLE_CLOUDFRONT_ID_KEYS[@]}")
+          CLOUDFRONT_URL=$(find_output_value "$ACTUAL_STACK_NAME" "${POSSIBLE_CLOUDFRONT_URL_KEYS[@]}")
+
+          # Set step outputs
           echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_OUTPUT
           echo "FRONTEND_BUCKET_NAME=$FRONTEND_BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "CLOUDFRONT_DISTRIBUTION_ID=$CLOUDFRONT_DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+          echo "CLOUDFRONT_URL=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
           
-          # デバッグ用に値を表示
-          echo "Extracted values:"
-          echo "  API_ENDPOINT: $API_ENDPOINT"
-          echo "  FRONTEND_BUCKET_NAME: $FRONTEND_BUCKET_NAME"
-          echo "  CLOUDFRONT_DISTRIBUTION_ID: $CLOUDFRONT_DISTRIBUTION_ID"
+          # Print summary
+          echo "CDK Outputs for ${{ env.ENV_NAME }}:"
+          echo "  Frontend URL: https://$CLOUDFRONT_URL"
+          echo "  API Endpoint: $API_ENDPOINT"
+          echo "  S3 Bucket: $FRONTEND_BUCKET_NAME"
+          echo "  CloudFront ID: $CLOUDFRONT_DISTRIBUTION_ID"
           
-          # 必須の値が取得できているかチェック
-          if [ -z "$FRONTEND_BUCKET_NAME" ] || [ "$FRONTEND_BUCKET_NAME" = "null" ]; then
-            echo "Error: Frontend bucket name not found"
+          # Validation
+          if [ -z "$FRONTEND_BUCKET_NAME" ] || [ -z "$CLOUDFRONT_DISTRIBUTION_ID" ] || [ -z "$CLOUDFRONT_URL" ]; then
+            echo "Error: One or more required CDK outputs were not found."
             exit 1
           fi
-          
-          if [ -z "$CLOUDFRONT_DISTRIBUTION_ID" ] || [ "$CLOUDFRONT_DISTRIBUTION_ID" = "null" ]; then
-            echo "Error: CloudFront distribution ID not found"
-            exit 1
-          fi
+        working-directory: infra
         working-directory: infra
 
       - name: Install Frontend dependencies
@@ -184,17 +130,9 @@ jobs:
 
       - name: Build Frontend
         run: |
-          echo "--- Before npm run build ---"
-          ls -la
+          echo "Building frontend for ${{ env.ENV_NAME }}..."
           VITE_API_ENDPOINT=${{ steps.get_outputs.outputs.API_ENDPOINT }} npm run build
-          echo "--- After npm run build ---"
-          ls -la
-          if [ -d dist ]; then
-            ls -la dist
-          else
-            echo "dist directory not found!"
-            exit 1
-          fi
+          echo "Build complete."
         working-directory: frontend
 
       - name: Deploy Frontend to S3
