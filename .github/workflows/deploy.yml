@@ -122,7 +122,6 @@ jobs:
             exit 1
           fi
         working-directory: infra
-        working-directory: infra
 
       - name: Install Frontend dependencies
         run: npm install
