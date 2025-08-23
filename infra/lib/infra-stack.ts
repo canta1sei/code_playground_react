@@ -67,6 +67,19 @@ export class InfraStack extends cdk.Stack {
 
     bingoSongsTable.grantReadData(bingoCardGeneratorLambda);
 
+    // 全曲リスト取得用のLambda関数
+    const getAllSongsLambda = new NodejsFunction(this, `GetAllSongsLambda${suffix}`, {
+      functionName: `GetAllSongsLambda${suffix}`,
+      entry: path.join(__dirname, '../../lambda/get-all-songs.ts'),
+      depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
+      handler: 'handler',
+      environment: {
+        BINGO_SONGS_TABLE_NAME: bingoSongsTable.tableName,
+      },
+    });
+
+    bingoSongsTable.grantReadData(getAllSongsLambda);
+
     // フロントエンド用S3バケット
     const frontendBucket = new s3.Bucket(this, `FrontendBucket${suffix}`, {
       bucketName: `mononofu-bingo-frontend${suffix.toLowerCase()}`,
@@ -103,6 +116,12 @@ export class InfraStack extends cdk.Stack {
       path: '/generate-card',
       methods: [apigw.HttpMethod.POST],
       integration: new HttpLambdaIntegration(`BingoCardGeneratorIntegration${suffix}`, bingoCardGeneratorLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/songs',
+      methods: [apigw.HttpMethod.GET],
+      integration: new HttpLambdaIntegration(`GetAllSongsIntegration${suffix}`, getAllSongsLambda),
     });
 
     
