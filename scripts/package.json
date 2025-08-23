@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "ts-node seed-database.ts"
+    "seed": "ts-node seed-database.ts",
+    "verify": "bash ./verify-local.sh"
   },
   "keywords": [],
   "author": "",

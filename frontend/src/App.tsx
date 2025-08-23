@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, DragEvent } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styles from './App.module.css';
 import html2canvas from 'html2canvas';
 import SongSelectionModal from './SongSelectionModal';

@@ -1,4 +1,5 @@
-import { forwardRef, DragEvent } from 'react';
+import { forwardRef } from 'react';
+import type { DragEvent } from 'react';
 import styles from './BingoGrid.module.css';
 
 // 型定義
