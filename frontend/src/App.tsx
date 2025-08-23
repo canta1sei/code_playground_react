@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styles from './App.module.css';
 import html2canvas from 'html2canvas';
+import SongSelectionModal from './SongSelectionModal'; // Import the modal component
 
 // 曲データの型を定義
 type Song = {
@@ -10,25 +11,50 @@ type Song = {
 
 function App() {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT + '/generate-card';
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
+
+  // Fetch all songs on initial load
+  useEffect(() => {
+    const fetchAllSongs = async () => {
+      if (!API_BASE_URL) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/songs`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch all songs');
+        }
+        const data: Song[] = await response.json();
+        setAllSongs(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load song list.');
+      }
+    };
+    fetchAllSongs();
+  }, [API_BASE_URL]);
 
   const handleGenerate = async () => {
     setIsLoading(true);
     setError(null);
     setSongs([]);
+    setIsEditing(false);
 
     try {
-      const response = await fetch(API_ENDPOINT, { method: 'POST' });
+      const response = await fetch(`${API_BASE_URL}/generate-card`, { method: 'POST' });
       if (!response.ok) {
-        throw new Error('API request failed');
+        const errorData = await response.json().catch(() => ({ message: 'API request failed' }));
+        throw new Error(errorData.message);
       }
       const fetchedSongs: Song[] = await response.json();
       
-      // 中央にフリースポットを追加
       const freeSpot: Song = { songId: 'FREE_SPOT', title: 'FREE' };
       const newSongs = [
         ...fetchedSongs.slice(0, 12),
@@ -44,8 +70,27 @@ function App() {
     }
   };
 
+  const handleEditCell = (index: number) => {
+    if (isEditing) {
+      setEditingIndex(index);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleSelectSong = (newSong: Song) => {
+    if (editingIndex !== null) {
+      const newSongs = [...songs];
+      newSongs[editingIndex] = newSong;
+      setSongs(newSongs);
+    }
+    setIsModalOpen(false);
+    setEditingIndex(null);
+  };
+
   const handleDownloadImage = async () => {
     if (!gridRef.current) return;
+    setIsEditing(false); // Ensure edit styles are not captured
+    await new Promise(resolve => setTimeout(resolve, 100)); // Wait for re-render
 
     const canvas = await html2canvas(gridRef.current);
     const link = document.createElement('a');
@@ -74,13 +119,24 @@ function App() {
         {songs.length > 0 && (
           <>
             <div className={styles.bingoGrid} ref={gridRef}>
-              {songs.map((song) => (
-                <div 
-                  key={song.songId} 
-                  className={`${styles.bingoCell} ${song.songId === 'FREE_SPOT' ? styles.freeSpot : ''}`}>
-                  {song.title}
-                </div>
-              ))}
+              {songs.map((song, index) => {
+                const isFreeSpot = song.songId === 'FREE_SPOT';
+                const cellContent = (
+                  <div 
+                    className={`${styles.bingoCell} ${isFreeSpot ? styles.freeSpot : ''}`}>
+                    {song.title}
+                  </div>
+                );
+
+                if (isEditing && !isFreeSpot) {
+                  return (
+                    <button key={song.songId} className={styles.editableCell} onClick={() => handleEditCell(index)}>
+                      {cellContent}
+                    </button>
+                  )
+                }
+                return <div key={song.songId}>{cellContent}</div>;
+              })}
             </div>
             <div className={styles.actionsContainer}>
               <button onClick={handleDownloadImage} className={styles.downloadButton}>
@@ -89,10 +145,20 @@ function App() {
               <button onClick={handleShare} className={styles.shareButton}>
                 Twitterでシェア
               </button>
+              <button onClick={() => setIsEditing(!isEditing)} className={styles.editButton}>
+                {isEditing ? '完了' : '編集'}
+              </button>
             </div>
           </>
         )}
       </main>
+      <SongSelectionModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        songs={allSongs}
+        onSelectSong={handleSelectSong}
+        currentSongs={songs}
+      />
     </div>
   );
 }
