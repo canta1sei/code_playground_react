@@ -132,7 +132,7 @@ function App() {
   const handleDownloadImage = async () => {
     if (!gridRef.current) return;
     setIsEditing(false); // 編集中のスタイルがキャプチャされないようにする
-    await new Promise(resolve => setTimeout(resolve, 100)); // 再レンダリングを待つ
+    await new Promise(resolve => setTimeout(resolve, 500)); // 再レンダリングを待つ
 
     const canvas = await html2canvas(gridRef.current);
     const link = document.createElement('a');
