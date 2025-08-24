@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useReducer, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
+import { useDragAndDrop } from './hooks/useDragAndDrop';
 
 // 曲データの型を定義
 type Song = {
@@ -10,40 +11,124 @@ type Song = {
   isFreeSpot?: boolean; // フリースポットかどうかを示すプロパティを追加
 };
 
+// Stateの型定義
+export type AppState = {
+  songs: Song[];
+  allSongs: Song[];
+  isLoading: boolean;
+  isEditing: boolean;
+  error: string | null;
+  dragState: {
+    dragOverIndex: number | null;
+    draggingIndex: number | null;
+    isDraggingActive: boolean;
+  };
+  modal: {
+    isOpen: boolean;
+    editingIndex: number | null;
+  };
+};
+
+// Actionの型定義
+export type AppAction =
+  | { type: 'SET_SONGS'; payload: Song[] }
+  | { type: 'SET_ALL_SONGS'; payload: Song[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_EDITING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_DRAG_OVER_INDEX'; payload: number | null }
+  | { type: 'SET_DRAGGING_INDEX'; payload: number | null }
+  | { type: 'SET_IS_DRAGGING_ACTIVE'; payload: boolean }
+  | { type: 'SET_MODAL_OPEN'; payload: boolean }
+  | { type: 'SET_EDITING_INDEX'; payload: number | null }
+  | { type: 'RESET_DRAG_STATE' }
+  | { type: 'SWAP_SONGS'; payload: { sourceIndex: number; targetIndex: number } };
+
+// Reducer関数
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_SONGS':
+      return { ...state, songs: action.payload };
+    case 'SET_ALL_SONGS':
+      return { ...state, allSongs: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_EDITING':
+      return { ...state, isEditing: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_DRAG_OVER_INDEX':
+      return { ...state, dragState: { ...state.dragState, dragOverIndex: action.payload } };
+    case 'SET_DRAGGING_INDEX':
+      return { ...state, dragState: { ...state.dragState, draggingIndex: action.payload } };
+    case 'SET_IS_DRAGGING_ACTIVE':
+      return { ...state, dragState: { ...state.dragState, isDraggingActive: action.payload } };
+    case 'SET_MODAL_OPEN':
+      return { ...state, modal: { ...state.modal, isOpen: action.payload } };
+    case 'SET_EDITING_INDEX':
+      return { ...state, modal: { ...state.modal, editingIndex: action.payload } };
+    case 'RESET_DRAG_STATE':
+      return {
+        ...state,
+        dragState: {
+          dragOverIndex: null,
+          draggingIndex: null,
+          isDraggingActive: false,
+        },
+      };
+    case 'SWAP_SONGS': {
+      const newSongs = [...state.songs];
+      const sourceItem = newSongs[action.payload.sourceIndex];
+      newSongs[action.payload.sourceIndex] = newSongs[action.payload.targetIndex];
+      newSongs[action.payload.targetIndex] = sourceItem;
+      return { ...state, songs: newSongs };
+    }
+    default:
+      return state;
+  }
+}
+
+// 初期State
+const initialAppState: AppState = {
+  songs: [],
+  allSongs: [],
+  isLoading: false,
+  isEditing: false,
+  error: null,
+  dragState: {
+    dragOverIndex: null,
+    draggingIndex: null,
+    isDraggingActive: false,
+  },
+  modal: {
+    isOpen: false,
+    editingIndex: null,
+  },
+};
+
 function App() {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [allSongs, setAllSongs] = useState<Song[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(appReducer, initialAppState);
+  const { songs, allSongs, isLoading, isEditing, error, dragState, modal } = state;
+  const { isOpen: isModalOpen, editingIndex } = modal;
+
   const gridRef = useRef<HTMLDivElement>(null);
   
-  // ドラッグ＆ドロップ用のstate
-  const draggedItem = useRef<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-
-  // New state to control body scroll
-  const [isDraggingActive, setIsDraggingActive] = useState(false);
-
-  // Effect to manage body scroll
-  useEffect(() => {
-    if (isDraggingActive) {
-      document.body.classList.add('no-scroll');
-    } else {
-      document.body.classList.remove('no-scroll');
-    }
-    // Clean up on unmount
-    return () => {
-      document.body.classList.remove('no-scroll');
-    };
-  }, [isDraggingActive]);
-
-  // モーダル用のstate
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
+
+  // ドラッグ&ドロップロジックをカスタムフックに委譲
+  const {
+    dragOverIndex,
+    draggingIndex,
+    handleDragStart,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragEnd,
+    handleDrop,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    setCellRef,
+  } = useDragAndDrop(songs, dispatch, dragState);
 
   // 初期ロード時に全曲リストを取得
   useEffect(() => {
@@ -55,19 +140,19 @@ function App() {
           throw new Error('Failed to fetch all songs');
         }
         const data: Song[] = await response.json();
-        setAllSongs(data);
+        dispatch({ type: 'SET_ALL_SONGS', payload: data });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load song list.');
+        dispatch({ type: 'SET_ERROR', payload: err instanceof Error ? err.message : 'Failed to load song list.' });
       }
     };
     fetchAllSongs();
   }, [API_BASE_URL]);
 
   const handleGenerate = async () => {
-    setIsLoading(true);
-    setError(null);
-    setSongs([]);
-    setIsEditing(false);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    dispatch({ type: 'SET_SONGS', payload: [] });
+    dispatch({ type: 'SET_EDITING', payload: false });
 
     try {
       const response = await fetch(`${API_BASE_URL}/generate-card`, { method: 'POST' });
@@ -83,19 +168,19 @@ function App() {
         freeSpot,
         ...fetchedSongs.slice(12)
       ];
-      setSongs(newSongs);
+      dispatch({ type: 'SET_SONGS', payload: newSongs });
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      dispatch({ type: 'SET_ERROR', payload: err instanceof Error ? err.message : 'An unknown error occurred' });
     } finally {
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   const handleEditCell = (index: number) => {
     if (isEditing) {
-      setEditingIndex(index);
-      setIsModalOpen(true);
+      dispatch({ type: 'SET_EDITING_INDEX', payload: index });
+      dispatch({ type: 'SET_MODAL_OPEN', payload: true });
     }
   };
 
@@ -103,61 +188,15 @@ function App() {
     if (editingIndex !== null) {
       const newSongs = [...songs];
       newSongs[editingIndex] = newSong;
-      setSongs(newSongs);
+      dispatch({ type: 'SET_SONGS', payload: newSongs });
     }
-    setIsModalOpen(false);
-    setEditingIndex(null);
-  };
-
-  // ドラッグ＆ドロップのハンドラ
-  const handleDragStart = (index: number) => {
-    draggedItem.current = index;
-    setDraggingIndex(index);
-    setIsDraggingActive(true); // Start preventing body scroll
-  };
-
-  const handleDragEnter = (index: number) => {
-    // フリースポットへのドラッグオーバーを許可しない
-    if (songs[index].isFreeSpot) return;
-
-    if (draggedItem.current !== null && draggedItem.current !== index) {
-      setDragOverIndex(index);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverIndex(null);
-  };
-  
-  const handleDragEnd = () => {
-    draggedItem.current = null;
-    setDragOverIndex(null);
-    setDraggingIndex(null);
-  }
-
-  const handleDrop = (targetIndex: number) => {
-    if (draggedItem.current === null) return;
-    // フリースポットへのドロップを許可しない
-    if (songs[targetIndex].isFreeSpot) return;
-
-    const sourceIndex = draggedItem.current;
-    if (sourceIndex !== targetIndex) {
-      const newSongs = [...songs];
-      // 要素を入れ替え
-      const sourceItem = newSongs[sourceIndex];
-      newSongs[sourceIndex] = newSongs[targetIndex];
-      newSongs[targetIndex] = sourceItem;
-      setSongs(newSongs);
-    }
-    // クリーンアップ
-    draggedItem.current = null;
-    setDragOverIndex(null);
-    setDraggingIndex(null);
+    dispatch({ type: 'SET_MODAL_OPEN', payload: false });
+    dispatch({ type: 'SET_EDITING_INDEX', payload: null });
   };
 
   const handleDownloadImage = async () => {
     if (!gridRef.current) return;
-    setIsEditing(false); // 編集中のスタイルがキャプチャされないようにする
+    dispatch({ type: 'SET_EDITING', payload: false }); // 編集中のスタイルがキャプチャされないようにする
     await new Promise(resolve => setTimeout(resolve, 500)); // 再レンダリングを待つ
 
     const canvas = await html2canvas(gridRef.current, { backgroundColor: null }); // 背景を透明に設定
@@ -181,82 +220,6 @@ function App() {
     window.open(url, '_blank');
   };
 
-  // 各ビンゴセルのDOM要素への参照を保持
-  const cellRefs = useRef<(HTMLButtonElement | HTMLDivElement | null)[]>([]);
-
-  // タッチイベント用のstateとref
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchDraggedItemIndex = useRef<number | null>(null); // ドラッグ中のアイテムのインデックス
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>, index: number) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchDraggedItemIndex.current = index;
-    handleDragStart(index); // 既存のドラッグ開始ハンドラを呼び出す
-    e.preventDefault(); // スクロールを防ぐ
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (touchDraggedItemIndex.current === null) return;
-
-    const touchX = e.touches[0].clientX;
-    const touchY = e.touches[0].clientY;
-
-    let newDragOverIndex: number | null = null;
-
-    // 各セルの位置をチェックし、タッチ座標がどのセル上にあるかを判定
-    cellRefs.current.forEach((cell, index) => {
-      if (cell) {
-        const rect = cell.getBoundingClientRect();
-        if (
-          touchX >= rect.left &&
-          touchX <= rect.right &&
-          touchY >= rect.top &&
-          touchY <= rect.bottom
-        ) {
-          newDragOverIndex = index;
-        }
-      }
-    });
-
-    if (newDragOverIndex !== dragOverIndex) {
-      setDragOverIndex(newDragOverIndex);
-    }
-    e.preventDefault(); // スクロールを防ぐ
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (touchDraggedItemIndex.current === null) return;
-
-    const touchX = e.changedTouches[0].clientX;
-    const touchY = e.changedTouches[0].clientY;
-
-    let targetIndex: number | null = null;
-
-    // 各セルの位置をチェックし、タッチ終了座標がどのセル上にあるかを判定
-    cellRefs.current.forEach((cell, index) => {
-      if (cell) {
-        const rect = cell.getBoundingClientRect();
-        if (
-          touchX >= rect.left &&
-          touchX <= rect.right &&
-          touchY >= rect.top &&
-          touchY <= rect.bottom
-        ) {
-          targetIndex = index;
-        }
-      }
-    });
-
-    if (targetIndex !== null) {
-      handleDrop(targetIndex); // ドロップ先のセルが見つかった場合
-    } else {
-      handleDragEnd(); // ドロップ先が見つからない場合はドラッグ終了
-    }
-    touchDraggedItemIndex.current = null;
-  };
-
   return (
     <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6 md:p-8">
@@ -277,7 +240,7 @@ function App() {
                 {isLoading ? '生成中...' : 'カードを作成'}
             </button>
             <button 
-              onClick={() => setIsEditing(!isEditing)} 
+              onClick={() => dispatch({ type: 'SET_EDITING', payload: !isEditing })} 
               className="sparkle-button bg-gray-200 text-gray-600 font-bold py-2 px-6 rounded-full shadow-md hover:bg-gray-300 transition-colors duration-300">
                 {isEditing ? '完了' : 'カードを編集'}
             </button>
@@ -307,13 +270,11 @@ function App() {
                 handleDragEnter={handleDragEnter}
                 handleDragLeave={handleDragLeave}
                 handleDrop={handleDrop}
-                handleDragEnd={handleDragEnd}
-                // 新しいタッチイベントハンドラを追加
                 handleTouchStart={handleTouchStart}
                 handleTouchMove={handleTouchMove}
                 handleTouchEnd={handleTouchEnd}
-                // 新しいプロパティを追加
-                setCellRef={(el, index) => (cellRefs.current[index] = el)}
+                handleDragEnd={handleDragEnd}
+                setCellRef={setCellRef}
               />
 
               {/* フッター情報 */}
@@ -343,7 +304,7 @@ function App() {
       </div>
       <SongSelectionModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => dispatch({ type: 'SET_MODAL_OPEN', payload: false })}
         songs={allSongs}
         onSelectSong={handleSelectSong}
         currentSongs={songs}
