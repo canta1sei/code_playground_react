@@ -134,6 +134,20 @@ jobs:
           echo "Build complete."
         working-directory: frontend
 
+      - name: Debug Built CSS
+        run: |
+          echo "--- Debugging Built CSS ---"
+          ls -la dist/assets
+          # Find the CSS file (e.g., index-XXXX.css) and print its content
+          CSS_FILE=$(find dist/assets -name "index-*.css" | head -n 1)
+          if [ -f "$CSS_FILE" ]; then
+            echo "Content of $CSS_FILE:"
+            cat "$CSS_FILE"
+          else
+            echo "No CSS file found in dist/assets!"
+          fi
+        working-directory: frontend
+
       - name: Deploy Frontend to S3
         run: |
           echo "Deploying to bucket: ${{ steps.get_outputs.outputs.FRONTEND_BUCKET_NAME }}"
