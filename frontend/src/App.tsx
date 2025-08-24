@@ -21,6 +21,23 @@ function App() {
   // ドラッグ＆ドロップ用のstate
   const draggedItem = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+
+  // New state to control body scroll
+  const [isDraggingActive, setIsDraggingActive] = useState(false);
+
+  // Effect to manage body scroll
+  useEffect(() => {
+    if (isDraggingActive) {
+      document.body.classList.add('no-scroll');
+    } else {
+      document.body.classList.remove('no-scroll');
+    }
+    // Clean up on unmount
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, [isDraggingActive]);
 
   // モーダル用のstate
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,9 +112,14 @@ function App() {
   // ドラッグ＆ドロップのハンドラ
   const handleDragStart = (index: number) => {
     draggedItem.current = index;
+    setDraggingIndex(index);
+    setIsDraggingActive(true); // Start preventing body scroll
   };
 
   const handleDragEnter = (index: number) => {
+    // フリースポットへのドラッグオーバーを許可しない
+    if (songs[index].isFreeSpot) return;
+
     if (draggedItem.current !== null && draggedItem.current !== index) {
       setDragOverIndex(index);
     }
@@ -110,10 +132,13 @@ function App() {
   const handleDragEnd = () => {
     draggedItem.current = null;
     setDragOverIndex(null);
+    setDraggingIndex(null);
   }
 
   const handleDrop = (targetIndex: number) => {
     if (draggedItem.current === null) return;
+    // フリースポットへのドロップを許可しない
+    if (songs[targetIndex].isFreeSpot) return;
 
     const sourceIndex = draggedItem.current;
     if (sourceIndex !== targetIndex) {
@@ -127,6 +152,7 @@ function App() {
     // クリーンアップ
     draggedItem.current = null;
     setDragOverIndex(null);
+    setDraggingIndex(null);
   };
 
   const handleDownloadImage = async () => {
@@ -135,10 +161,17 @@ function App() {
     await new Promise(resolve => setTimeout(resolve, 500)); // 再レンダリングを待つ
 
     const canvas = await html2canvas(gridRef.current, { backgroundColor: null }); // 背景を透明に設定
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = 'bingo-card.png';
-    link.click();
+    
+    // モバイル対応: 画像を新しいタブで開く
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      window.open(canvas.toDataURL('image/png'), '_blank');
+    } else {
+      // PC対応: ダウンロードリンクを作成してクリック
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'bingo-card.png';
+      link.click();
+    }
   };
 
   const handleShare = () => {
@@ -146,6 +179,82 @@ function App() {
     const hashtags = encodeURIComponent('ももクロビンゴ,ももいろクローバーZ');
     const url = `https://twitter.com/intent/tweet?text=${text}&hashtags=${hashtags}`;
     window.open(url, '_blank');
+  };
+
+  // 各ビンゴセルのDOM要素への参照を保持
+  const cellRefs = useRef<(HTMLButtonElement | HTMLDivElement | null)[]>([]);
+
+  // タッチイベント用のstateとref
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchDraggedItemIndex = useRef<number | null>(null); // ドラッグ中のアイテムのインデックス
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>, index: number) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDraggedItemIndex.current = index;
+    handleDragStart(index); // 既存のドラッグ開始ハンドラを呼び出す
+    e.preventDefault(); // スクロールを防ぐ
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (touchDraggedItemIndex.current === null) return;
+
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+
+    let newDragOverIndex: number | null = null;
+
+    // 各セルの位置をチェックし、タッチ座標がどのセル上にあるかを判定
+    cellRefs.current.forEach((cell, index) => {
+      if (cell) {
+        const rect = cell.getBoundingClientRect();
+        if (
+          touchX >= rect.left &&
+          touchX <= rect.right &&
+          touchY >= rect.top &&
+          touchY <= rect.bottom
+        ) {
+          newDragOverIndex = index;
+        }
+      }
+    });
+
+    if (newDragOverIndex !== dragOverIndex) {
+      setDragOverIndex(newDragOverIndex);
+    }
+    e.preventDefault(); // スクロールを防ぐ
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
+    if (touchDraggedItemIndex.current === null) return;
+
+    const touchX = e.changedTouches[0].clientX;
+    const touchY = e.changedTouches[0].clientY;
+
+    let targetIndex: number | null = null;
+
+    // 各セルの位置をチェックし、タッチ終了座標がどのセル上にあるかを判定
+    cellRefs.current.forEach((cell, index) => {
+      if (cell) {
+        const rect = cell.getBoundingClientRect();
+        if (
+          touchX >= rect.left &&
+          touchX <= rect.right &&
+          touchY >= rect.top &&
+          touchY <= rect.bottom
+        ) {
+          targetIndex = index;
+        }
+      }
+    });
+
+    if (targetIndex !== null) {
+      handleDrop(targetIndex); // ドロップ先のセルが見つかった場合
+    } else {
+      handleDragEnd(); // ドロップ先が見つからない場合はドラッグ終了
+    }
+    touchDraggedItemIndex.current = null;
   };
 
   return (
@@ -179,12 +288,11 @@ function App() {
 
         {/* ビンゴカード */}
         {songs.length > 0 && (
-          <div className="bg-pink-100 rounded-2xl shadow-inner p-4">
+          <div className="bg-pink-100 rounded-2xl shadow-inner p-4 touch-action: none">
               
               {/* ヘッダー画像部分 */}
-              <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center text-gray-500">
-                  <p className="text-sm">ここにヘッダー画像が入るよ！</p>
-                  {/* ユーザーはここをクリックして画像を変更できるUIを想定 */}
+              <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
+                  <img src="/vite.svg" alt="Default Header" className="w-full h-full object-cover" />
               </div>
 
               {/* ビンゴグリッド */}
@@ -193,12 +301,19 @@ function App() {
                 songs={songs}
                 isEditing={isEditing}
                 dragOverIndex={dragOverIndex}
+                draggingIndex={draggingIndex}
                 handleEditCell={handleEditCell}
                 handleDragStart={handleDragStart}
                 handleDragEnter={handleDragEnter}
                 handleDragLeave={handleDragLeave}
                 handleDrop={handleDrop}
                 handleDragEnd={handleDragEnd}
+                // 新しいタッチイベントハンドラを追加
+                handleTouchStart={handleTouchStart}
+                handleTouchMove={handleTouchMove}
+                handleTouchEnd={handleTouchEnd}
+                // 新しいプロパティを追加
+                setCellRef={(el, index) => (cellRefs.current[index] = el)}
               />
 
               {/* フッター情報 */}
