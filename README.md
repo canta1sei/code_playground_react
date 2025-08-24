@@ -1,5 +1,3 @@
-
-
 # **モノノフ向けSaaS作成**
 
 ## 2025 年 8 月 15 日
@@ -14,75 +12,80 @@
 
 **特徴**：
 
-* ビンゴカード生成でライブのワクワク感を増幅  
-* 画像化＆SNS共有で盛り上がりを拡散  
-* 後々、投票・称号・AIチャットなどの拡張も可能
+*   ビンゴカード生成でライブのワクワク感を増幅
+*   **ユーザーが自由にカードをカスタマイズ可能（編集・並べ替え）**
+*   画像化＆SNS共有で盛り上がりを拡散
+*   **モダンで使いやすいUI/UX**
+*   後々、投票・称号・AIチャットなどの拡張も可能
 
 **技術スタック**：
 
-* フロント：React \+ TypeScript  
-* バックエンド：AWS Lambda \+ API Gateway  
-* データベース：DynamoDB  
-* インフラ構築：AWS CDK \+ TypeScript  
-* CI/CD：GitHub Actions  
-* 将来的にCognito / AppSync / Lex導入予定
+*   フロント：React + TypeScript
+*   **スタイリング：Tailwind CSS**
+*   バックエンド：AWS Lambda + API Gateway
+*   データベース：DynamoDB
+*   インフラ構築：AWS CDK + TypeScript
+*   CI/CD：GitHub Actions
+*   将来的にCognito / AppSync / Lex導入予定
 
 # **2.目標**
 
 **短期目標（1日）**：
 
-* MVPを作ってモノノフさんに試してもらう  
-* ビンゴカード生成・画像化・SNS共有ができる状態
+*   MVPを作ってモノノフさんに試してもらう
+*   ビンゴカード生成・画像化・SNS共有ができる状態
 
-  **中期目標（1〜2週間〜1ヶ月）**：
+**中期目標（1〜2週間〜1ヶ月）**：
 
-* 一曲目予想＆称号付与  
-* 投票機能＆リアルタイムランキング
+*   一曲目予想＆称号付与
+*   投票機能＆リアルタイムランキング
 
-  **長期目標（2〜3ヶ月）**：
+**長期目標（2〜3ヶ月）**：
 
-* Cognito認証によるユーザー管理  
-* あーりんロボAIチャット機能
+*   Cognito認証によるユーザー管理
+*   あーりんロボAIチャット機能
 
 # **3.仕様**
 
 ### **3-1. ビンゴカード生成**
 
-* 5x5のカード  
-* 曲リストはDynamoDB（BingoSongsTable）  
-* Lambdaでランダムに25曲選択（seed対応で再現性あり）  
-* 生成結果をBingoCardsTableに保存  
-* HTMLを画像化、Twitter(X)共有可能
+*   5x5のカード
+*   曲リストはDynamoDB（BingoSongsTable）
+*   Lambdaでランダムに25曲選択（seed対応で再現性あり）
+*   生成結果をBingoCardsTableに保存
+*   HTMLを画像化、Twitter(X)共有可能
+*   **カード生成後、ユーザーが自由に曲を編集・並べ替え可能**
+*   **画像ダウンロード時の不具合を修正済み**
 
 ### **3-2. 一曲目予想＆称号付与**
 
-* ライブごとにファンが最初の曲を予想  
-* 投票結果をFirstSongGuessTableに保存  
-* 正解者に称号付与（将来的にCognito連携）
+*   ライブごとにファンが最初の曲を予想
+*   投票結果をFirstSongGuessTableに保存
+*   正解者に称号付与（将来的にCognito連携）
 
 ### **3-3. やって欲しい曲投票＆ランキング**
 
-* SongRequestsTableに投票データ保存  
-* LambdaまたはAppSyncでリアルタイムランキング表示
+*   SongRequestsTableに投票データ保存
+*   LambdaまたはAppSyncでリアルタイムランキング表示
 
 ### **3-4. あーりんロボチャット**
 
-* Amazon Lex \+ Lambda  
-* 台詞や口調学習済み  
-* フロントでチャットUI表示
+*   Amazon Lex + Lambda
+*   台詞や口調学習済み
+*   フロントでチャットUI表示
 
 ### **3-5. ユーザー管理（将来的）**
 
-* Cognitoでユーザー認証  
-* 称号・履歴・投票結果の管理  
-* guestIdで未登録ユーザーも暫定対応可能
+*   Cognitoでユーザー認証
+*   称号・履歴・投票結果の管理
+*   guestIdで未登録ユーザーも暫定対応可能
 
 ### **3-6. コスト戦略**
 
-* DynamoDB：最初は無料枠 or 最小プロビジョニング  
-* Lambda/API Gateway：無料枠活用  
-* S3/CloudFront：静的サイト配信で無料枠活用  
-* Route53：ドメイン費用のみ
+*   DynamoDB：最初は無料枠 or 最小プロビジョニング
+*   Lambda/API Gateway：無料枠活用
+*   S3/CloudFront：静的サイト配信で無料枠活用
+*   Route53：ドメイン費用のみ
 
 # **4.マイルストーン**
 
@@ -90,10 +93,10 @@
 
 ### **フェーズ0：準備**
 
-* AWSアカウント・無料枠有効化  
-* 開発用GitHubリポジトリ作成  
-* AWS CDK（TypeScript）プロジェクト初期化  
-* 基本インフラ（DynamoDB / Lambda / API Gateway）雛形構築
+*   AWSアカウント・無料枠有効化
+*   開発用GitHubリポジトリ作成
+*   AWS CDK（TypeScript）プロジェクト初期化
+*   基本インフラ（DynamoDB / Lambda / API Gateway）雛形構築
 
 ---
 
@@ -101,28 +104,30 @@
 
 💡 **目的：モノノフさんに即使ってもらえる形にする**
 
-* **機能**  
-  * ビンゴカード生成（5x5）  
-    * 曲マスタをDynamoDBに保存（`BingoSongsTable`）  
-    * Lambdaでランダム25曲選択  
-    * seed対応で同じカード再生成可  
-  * カード画像化（`html2canvas`等）  
-  * Twitter（X）共有リンク生成
-  * 現状はテキストとハッシュタグのみの共有。
-    * **将来的な目標**: 生成したビンゴカード画像を添付してツイートできるようにする。
-      *   **実装方法（検討中）**:
-          *   **カードを画像化**: `html2canvas`ライブラリを使用し、画面上のHTML要素を画像に変換する。
-          *   **Twitter（X）に共有**:
-              *   画像をS3にアップロードし、その画像のURLを取得する。
-              *   **重要**: `https://twitter.com/intent/tweet?text=【本文】&url=【画像のURL】` の形式は、**画像へのリンク**をツイートに含めるものであり、**画像を直接ツイートに添付する**ものではない。画像を直接添付するには、Twitter APIのメディアアップロード機能を利用する必要がある。この場合、セキュリティと認証のためバックエンド（Lambdaなど）での処理が必要となる。  
-* **構成**  
-  * DynamoDB（曲マスタ・ビンゴカード）  
-  * Lambda（カード生成API）  
-  * API Gateway（RESTエンドポイント）  
-  * React \+ TypeScript（フロント）  
-* **インフラ**  
-  * AWS CDKで一括構築（dev/prod環境分離）  
-  * GitHub Actionsで自動デプロイ
+*   **機能**
+    *   ビンゴカード生成（5x5）
+        *   曲マスタをDynamoDBに保存（`BingoSongsTable`）
+        *   Lambdaでランダム25曲選択
+        *   seed対応で同じカード再生成可
+        *   **生成後、ユーザーが自由に曲を編集・並べ替え可能**
+    *   カード画像化（`html2canvas`等）
+    *   Twitter（X）共有リンク生成
+    *   現状はテキストとハッシュタグのみの共有。
+        *   **将来的な目標**: 生成したビンゴカード画像を添付してツイートできるようにする。
+            *   **実装方法（検討中）**:
+                *   **カードを画像化**: `html2canvas`ライブラリを使用し、画面上のHTML要素を画像に変換する。
+                *   **Twitter（X）に共有**:
+                    *   画像をS3にアップロードし、その画像のURLを取得する。
+                    *   **重要**: `https://twitter.com/intent/tweet?text=【本文】&url=【画像のURL】` の形式は、**画像へのリンク**をツイートに含めるものであり、**画像を直接ツイートに添付する**ものではない。画像を直接添付するには、Twitter APIのメディアアップロード機能を利用する必要がある。この場合、セキュリティと認証のためバックエンド（Lambdaなど）での処理が必要となる。
+*   **構成**
+    *   DynamoDB（曲マスタ・ビンゴカード）
+    *   Lambda（カード生成API）
+    *   API Gateway（RESTエンドポイント）
+    *   React + TypeScript（フロント）
+    *   **スタイリング：Tailwind CSS**
+*   **インフラ**
+    *   AWS CDKで一括構築（dev/prod環境分離）
+    *   GitHub Actionsで自動デプロイ
 
 ---
 
@@ -130,13 +135,13 @@
 
 💡 **目的：ライブ前の盛り上がりをさらに加速**
 
-* **一曲目予想**  
-  * `FirstSongGuessTable`作成  
-  * Lambdaで予想登録＆正解判定  
-  * 種類別「称号」データ管理開始（まだ表示だけ）  
-* **ユーザー識別（簡易版）**  
-  * guestId（UUID）発行し、APIリクエストに付与  
-  * 後のCognito導入に備える
+*   **一曲目予想**
+    *   `FirstSongGuessTable`作成
+    *   Lambdaで予想登録＆正解判定
+    *   種類別「称号」データ管理開始（まだ表示だけ）
+*   **ユーザー識別（簡易版）**
+    *   guestId（UUID）発行し、APIリクエストに付与
+    *   後のCognito導入に備える
 
 ---
 
@@ -144,13 +149,13 @@
 
 💡 **目的：コミュニティ感とリアルタイム性を導入**
 
-* **やって欲しい曲投票**  
-  * `SongRequestsTable`作成  
-  * Lambdaで投票処理  
-  * ランキングAPI実装  
-* **リアルタイムランキング**  
-  * DynamoDB Streams \+ Lambda  
-  * または AWS AppSync（GraphQL Subscription）
+*   **やって欲しい曲投票**
+    *   `SongRequestsTable`作成
+    *   Lambdaで投票処理
+    *   ランキングAPI実装
+*   **リアルタイムランキング**
+    *   DynamoDB Streams + Lambda
+    *   または AWS AppSync（GraphQL Subscription）
 
 ---
 
@@ -158,10 +163,10 @@
 
 💡 **目的：ユーザー体験の深化と遊び心の爆発**
 
-* **Amazon Cognito導入**  
-  * ユーザーアカウント登録  
-  * 称号付与＆プロフィール表示  
-* **あーりんロボ（AIチャット）**  
-  * Amazon Lex \+ Lambda  
-  * 台本・口調学習  
-  * フロントでチャットUI実装
+*   **Amazon Cognito導入**
+    *   ユーザーアカウント登録
+    *   称号付与＆プロフィール表示
+*   **あーりんロボ（AIチャット）**
+    *   Amazon Lex + Lambda
+    *   台本・口調学習
+    *   フロントでチャットUI実装
