@@ -1,41 +1,104 @@
-import { useState, useRef } from 'react';
-import styles from './App.module.css';
+import { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors, 
+  DragOverlay, // DragOverlayをインポート
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'; // DragStartEventをインポート
 
-// 曲データの型を定義
+import SongSelectionModal from './SongSelectionModal';
+import BingoGrid from './BingoGrid';
+import { SongCard } from './SongCard'; // SongCardをインポート
+
+// 曲データの型を拡張
 type Song = {
+  id: string; // dnd-kitで必須
   songId: string;
   title: string;
+  color: 'pink' | 'red' | 'yellow' | 'purple' | 'green';
+  isFreeSpot?: boolean;
 };
 
-function App() {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+const initialSongs: Song[] = [];
+const colors: ('pink' | 'red' | 'yellow' | 'purple' | 'green')[] = ['pink', 'red', 'yellow', 'purple', 'green'];
 
-  const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT + '/generate-card';
+function App() {
+  const [songs, setSongs] = useState<Song[]>(initialSongs);
+  const [allSongs, setAllSongs] = useState<Song[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSongId, setEditingSongId] = useState<string | null>(null);
+  const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // スワイプ操作を検知しやすくするための設定
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  // 初期ロード時に全曲リストを取得
+  useEffect(() => {
+    const fetchAllSongs = async () => {
+      if (!API_BASE_URL) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/songs`);
+        if (!response.ok) throw new Error('Failed to fetch all songs');
+        const data = await response.json();
+        const coloredSongs = data.map((song: any, index: number) => ({
+          ...song,
+          id: song.songId,
+          color: colors[index % colors.length],
+        }));
+        setAllSongs(coloredSongs);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load song list.');
+      }
+    };
+    fetchAllSongs();
+  }, [API_BASE_URL]);
 
   const handleGenerate = async () => {
     setIsLoading(true);
     setError(null);
     setSongs([]);
+    setIsEditing(false);
 
     try {
-      const response = await fetch(API_ENDPOINT, { method: 'POST' });
+      const response = await fetch(`${API_BASE_URL}/generate-card`, { method: 'POST' });
       if (!response.ok) {
-        throw new Error('API request failed');
+        const errorData = await response.json().catch(() => ({ message: 'API request failed' }));
+        throw new Error(errorData.message);
       }
-      const fetchedSongs: Song[] = await response.json();
+      const fetchedSongs: Omit<Song, 'id' | 'color'>[] = await response.json();
       
-      // 中央にフリースポットを追加
-      const freeSpot: Song = { songId: 'FREE_SPOT', title: 'FREE' };
-      const newSongs = [
-        ...fetchedSongs.slice(0, 12),
+      const freeSpot: Song = { id: 'FREE_SPOT', songId: 'FREE_SPOT', title: 'FREE', isFreeSpot: true, color: 'pink' };
+      
+      const newSongs: Song[] = fetchedSongs.map((song, index) => ({
+        ...song,
+        id: song.songId + `_${index}`,
+        color: colors[index % colors.length],
+      }));
+
+      const finalSongs = [
+        ...newSongs.slice(0, 12),
         freeSpot,
-        ...fetchedSongs.slice(12)
+        ...newSongs.slice(12)
       ];
-      setSongs(newSongs);
+      setSongs(finalSongs);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -44,10 +107,69 @@ function App() {
     }
   };
 
+  const handleEditCell = (id: string) => {
+    if (isEditing) {
+      setEditingSongId(id);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleSelectSong = (newSong: Song) => {
+    if (editingSongId !== null) {
+      setSongs(currentSongs => 
+        currentSongs.map(song => song.id === editingSongId ? { ...newSong, id: editingSongId } : song)
+      );
+    }
+    setIsModalOpen(false);
+    setEditingSongId(null);
+  };
+
+  function handleDragStart(event: DragStartEvent) {
+    const { active } = event;
+    const song = songs.find(s => s.id === active.id);
+    if (song) {
+      setActiveSong(song);
+    }
+    const grid = document.querySelector(".bingo-grid") as HTMLElement;
+    if (grid) grid.style.overflow = "hidden";
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const grid = document.querySelector(".bingo-grid") as HTMLElement;
+    if (grid) grid.style.overflow = "";
+
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSongs((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        if (items[newIndex].isFreeSpot || items[oldIndex].isFreeSpot) {
+          return items;
+        }
+
+        const newItems = [...items];
+        [newItems[oldIndex], newItems[newIndex]] = [newItems[newIndex], newItems[oldIndex]];
+
+        return newItems;
+      });
+    }
+    setActiveSong(null); // ドラッグ終了時にアクティブな曲をクリア
+  }
+
+  function handleDragCancel() {
+    const grid = document.querySelector(".bingo-grid") as HTMLElement;
+    if (grid) grid.style.overflow = "";
+    setActiveSong(null);
+  }
+
   const handleDownloadImage = async () => {
     if (!gridRef.current) return;
+    setIsEditing(false);
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    const canvas = await html2canvas(gridRef.current);
+    const canvas = await html2canvas(gridRef.current, { backgroundColor: null });
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
     link.download = 'bingo-card.png';
@@ -55,45 +177,87 @@ function App() {
   };
 
   const handleShare = () => {
-    const text = encodeURIComponent('ももクロちゃんのビンゴカードで遊んでるよ！');
-    const hashtags = encodeURIComponent('ももクロビンゴ,ももいろクローバーZ');
-    const url = `https://twitter.com/intent/tweet?text=${text}&hashtags=${hashtags}`;
+    const text = encodeURIComponent('ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ');
+    const url = `https://twitter.com/intent/tweet?text=${text}`;
     window.open(url, '_blank');
   };
 
   return (
-    <div className={styles.appContainer}>
-      <header>
-        <h1>ももクロ ビンゴカードジェネレーター</h1>
-        <button onClick={handleGenerate} disabled={isLoading} className={styles.generateButton}>
-          {isLoading ? '生成中...' : 'ビンゴカードを生成！'}
-        </button>
-      </header>
-      <main>
-        {error && <p className={styles.errorMessage}>エラー: {error}</p>}
-        {songs.length > 0 && (
-          <>
-            <div className={styles.bingoGrid} ref={gridRef}>
-              {songs.map((song) => (
-                <div 
-                  key={song.songId} 
-                  className={`${styles.bingoCell} ${song.songId === 'FREE_SPOT' ? styles.freeSpot : ''}`}>
-                  {song.title}
-                </div>
-              ))}
-            </div>
-            <div className={styles.actionsContainer}>
-              <button onClick={handleDownloadImage} className={styles.downloadButton}>
-                画像をダウンロード
+    <DndContext 
+      sensors={sensors} 
+      collisionDetection={closestCenter} 
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6 md:p-8">
+          
+          <header className="text-center mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
+                  勝手にBINGONIGHT
+              </h1>
+          </header>
+
+          <div className="flex justify-center gap-4 mb-6">
+              <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
+                  {isLoading ? '生成中...' : 'カードを作成'}
               </button>
-              <button onClick={handleShare} className={styles.shareButton}>
-                Twitterでシェア
+              <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-gray-200 text-gray-600 hover:bg-gray-300">
+                  {isEditing ? '完了' : 'カードを編集'}
               </button>
+          </div>
+
+          {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
+
+          {songs.length > 0 && (
+              <div className="bg-pink-100 rounded-2xl shadow-inner p-4">
+                  <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
+                      <img src="/vite.svg" alt="Header" className="w-full h-full object-cover" />
+                  </div>
+                  <BingoGrid
+                    ref={gridRef}
+                    songs={songs}
+                    isEditing={isEditing}
+                    onEditCell={handleEditCell}
+                  />
+                  <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
+                      <span>勝手にBINGO NIGHT</span>
+                      <span>Name: ゲスト</span>
+                  </div>
+              </div>
+          )}
+
+          {songs.length > 0 && (
+            <div className="mt-8 text-center space-y-4">
+                <button onClick={handleDownloadImage} className="share-button bg-gradient-to-r from-cyan-400 to-blue-500">
+                    画像を保存
+                </button>
+                <button onClick={handleShare} className="share-button bg-black text-white">
+                    Xで共有
+                </button>
             </div>
-          </>
-        )}
-      </main>
-    </div>
+          )}
+
+        </div>
+        <SongSelectionModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          songs={allSongs}
+          onSelectSong={handleSelectSong}
+          currentSongs={songs}
+        />
+      </div>
+      <DragOverlay dropAnimation={null}>
+        {activeSong ? (
+          <SongCard 
+            song={activeSong} 
+            isEditing={isEditing} 
+            isOverlay
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
