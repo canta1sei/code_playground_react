@@ -2,15 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* M PLUS Rounded 1cフォントを全体に適用 */
-body {
-    font-family: 'M PLUS Rounded 1c', sans-serif;
+.bingo-grid {
+  /* iOSでのスワイプバックや、Androidでのスワイプでのブラウザ更新を防ぐ */
+  touch-action: none;
 }
-/* ボタンのキラキラホバーエフェクト */
-.sparkle-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 105, 180, 0.6);
+
+.bingo-card-text-content {
+  /* フォントサイズを画面幅に応じて自動調整 */
+  font-size: clamp(0.5rem, 3.5vw, 0.9rem); /* 最小8px */
+  /* 行間を詰めて複数行でも見やすくする */
+  line-height: 1.3;
+  /* 単語を維持しつつ、はみ出す場合のみ折り返す */
+  overflow-wrap: break-word;
+  /* テキストの上下左右に少し余白を持たせる */
+  padding: 0.2rem;
 }
-.sparkle-button {
-    transition: all 0.3s ease-in-out;
+
+@layer components {
+  .control-button {
+    @apply font-bold py-2 px-6 rounded-full shadow-md transition-colors duration-300;
+  }
+  .share-button {
+    @apply w-full max-w-xs font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+}
+
+.sparkle {
+  animation: sparkle-animation 1.5s infinite ease-in-out;
+}
+
+@keyframes sparkle-animation {
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.7), inset 0 0 5px 1px rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 0 20px 5px rgba(255, 255, 100, 0.9), inset 0 0 10px 3px rgba(255, 255, 100, 0.7); }
+}
+
+.spotlight::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,220,0.6) 0%, rgba(255,255,255,0) 50%);
+  transform: translate(-50%, -50%);
+  animation: spotlight-spin 5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes spotlight-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
