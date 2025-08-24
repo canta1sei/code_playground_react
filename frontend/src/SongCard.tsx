@@ -34,9 +34,9 @@ export function SongCard({ song, isEditing, isOverlay }: Props) {
     disabled: isDisabled,
   });
 
-  const style = {
+  const style: React.CSSProperties = {
     // isDraggingがtrueの時に元の要素を非表示にする
-    visibility: isDragging && !isOverlay ? 'hidden' : 'visible' as const,
+    visibility: isDragging && !isOverlay ? 'hidden' : 'visible',
   };
 
   const setNodeRef = (node: HTMLElement | null) => {
