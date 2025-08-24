@@ -217,6 +217,11 @@ function App() {
                 className="sparkle-button w-full max-w-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
                   画像を保存してXに共有
               </button>
+              <button 
+                onClick={handleShare} 
+                className="sparkle-button w-full max-w-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+                  Xで共有
+              </button>
           </div>
         )}
 
