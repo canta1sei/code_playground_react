@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* M PLUS Rounded 1cフォントを全体に適用 */
+body {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+}
+/* ボタンのキラキラホバーエフェクト */
+.sparkle-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.6);
+}
+.sparkle-button {
+    transition: all 0.3s ease-in-out;
+}

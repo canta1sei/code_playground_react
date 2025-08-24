@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import styles from './App.module.css';
 import html2canvas from 'html2canvas';
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
@@ -8,6 +7,7 @@ import BingoGrid from './BingoGrid';
 type Song = {
   songId: string;
   title: string;
+  isFreeSpot?: boolean; // フリースポットかどうかを示すプロパティを追加
 };
 
 function App() {
@@ -60,7 +60,7 @@ function App() {
       }
       const fetchedSongs: Song[] = await response.json();
       
-      const freeSpot: Song = { songId: 'FREE_SPOT', title: 'FREE' };
+      const freeSpot: Song = { songId: 'FREE_SPOT', title: 'FREE', isFreeSpot: true };
       const newSongs = [
         ...fetchedSongs.slice(0, 12),
         freeSpot,
@@ -134,7 +134,7 @@ function App() {
     setIsEditing(false); // 編集中のスタイルがキャプチャされないようにする
     await new Promise(resolve => setTimeout(resolve, 500)); // 再レンダリングを待つ
 
-    const canvas = await html2canvas(gridRef.current);
+    const canvas = await html2canvas(gridRef.current, { backgroundColor: null }); // 背景を透明に設定
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
     link.download = 'bingo-card.png';
@@ -149,43 +149,78 @@ function App() {
   };
 
   return (
-    <div className={styles.appContainer}>
-      <header>
-        <h1>ももクロ ビンゴカードジェネレーター</h1>
-        <button onClick={handleGenerate} disabled={isLoading} className={styles.generateButton}>
-          {isLoading ? '生成中...' : 'ビンゴカードを生成！'}
-        </button>
-      </header>
-      <main>
-        {error && <p className={styles.errorMessage}>エラー: {error}</p>}
+    <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6 md:p-8">
+        
+        {/* ヘッダータイトル */}
+        <header className="text-center mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
+                勝手にBINGONIGHT ジェネレーター
+            </h1>
+        </header>
+
+        {/* 操作ボタン */}
+        <div className="flex justify-center gap-4 mb-6">
+            <button 
+              onClick={handleGenerate} 
+              disabled={isLoading} 
+              className="sparkle-button bg-pink-400 text-white font-bold py-2 px-6 rounded-full shadow-md hover:bg-pink-500 transition-colors duration-300">
+                {isLoading ? '生成中...' : 'カードを作成'}
+            </button>
+            <button 
+              onClick={() => setIsEditing(!isEditing)} 
+              className="sparkle-button bg-gray-200 text-gray-600 font-bold py-2 px-6 rounded-full shadow-md hover:bg-gray-300 transition-colors duration-300">
+                {isEditing ? '完了' : 'カードを編集'}
+            </button>
+        </div>
+
+        {/* エラーメッセージ */}
+        {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
+
+        {/* ビンゴカード */}
         {songs.length > 0 && (
-          <>
-            <BingoGrid
-              ref={gridRef}
-              songs={songs}
-              isEditing={isEditing}
-              dragOverIndex={dragOverIndex}
-              handleEditCell={handleEditCell}
-              handleDragStart={handleDragStart}
-              handleDragEnter={handleDragEnter}
-              handleDragLeave={handleDragLeave}
-              handleDrop={handleDrop}
-              handleDragEnd={handleDragEnd}
-            />
-            <div className={styles.actionsContainer}>
-              <button onClick={handleDownloadImage} className={styles.downloadButton}>
-                画像をダウンロード
-              </button>
-              <button onClick={handleShare} className={styles.shareButton}>
-                Twitterでシェア
-              </button>
-              <button onClick={() => setIsEditing(!isEditing)} className={styles.editButton}>
-                {isEditing ? '完了' : '編集'}
-              </button>
-            </div>
-          </>
+          <div className="bg-pink-100 rounded-2xl shadow-inner p-4">
+              
+              {/* ヘッダー画像部分 */}
+              <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center text-gray-500">
+                  <p className="text-sm">ここにヘッダー画像が入るよ！</p>
+                  {/* ユーザーはここをクリックして画像を変更できるUIを想定 */}
+              </div>
+
+              {/* ビンゴグリッド */}
+              <BingoGrid
+                ref={gridRef}
+                songs={songs}
+                isEditing={isEditing}
+                dragOverIndex={dragOverIndex}
+                handleEditCell={handleEditCell}
+                handleDragStart={handleDragStart}
+                handleDragEnter={handleDragEnter}
+                handleDragLeave={handleDragLeave}
+                handleDrop={handleDrop}
+                handleDragEnd={handleDragEnd}
+              />
+
+              {/* フッター情報 */}
+              <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
+                  <span>勝手にBINGO NIGHT</span>
+                  <span>Name: ゲスト</span>
+              </div>
+          </div>
         )}
-      </main>
+
+        {/* 共有ボタン */}
+        {songs.length > 0 && (
+          <div className="mt-8 text-center">
+              <button 
+                onClick={handleDownloadImage} 
+                className="sparkle-button w-full max-w-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+                  画像を保存してXに共有
+              </button>
+          </div>
+        )}
+
+      </div>
       <SongSelectionModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

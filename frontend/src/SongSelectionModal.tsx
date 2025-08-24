@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import styles from './SongSelectionModal.module.css';
 
 // 型定義
 type Song = {
@@ -41,30 +40,25 @@ const SongSelectionModal = ({ isOpen, onClose, songs, onSelectSong, currentSongs
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2>曲を選択</h2>
-          <button onClick={onClose} className={styles.closeButton}>&times;</button>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-lg p-6 w-11/12 max-w-md max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">曲を選択</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl leading-none">&times;</button>
         </div>
         <input
           type="text"
           placeholder="曲名を検索..."
-          className={styles.searchInput}
+          className="w-full p-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <ul className={styles.songList}>
+        <ul className="flex-grow overflow-y-auto border border-gray-200 rounded-md">
           {filteredSongs.map((song) => (
             <li 
               key={song.songId} 
-              className={styles.songItem}
+              className={`p-3 border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-pink-50 ${currentSongIds.has(song.songId) ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => handleSelect(song)}
-              // Disable selecting a song if it's already on the card
-              style={{ 
-                cursor: currentSongIds.has(song.songId) ? 'not-allowed' : 'pointer',
-                opacity: currentSongIds.has(song.songId) ? 0.5 : 1
-              }}
             >
               {song.title}
             </li>
