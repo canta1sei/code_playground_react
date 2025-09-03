@@ -14,6 +14,7 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'; // DragStartE
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
 import { SongCard } from './SongCard'; // SongCardをインポート
+import ShareImageModal from './ShareImageModal'; // ShareImageModalをインポート
 
 // 曲データの型を拡張
 type Song = {
@@ -36,8 +37,11 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
 
-  const gridRef = useRef<HTMLDivElement>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null); // 画像化する範囲のref
+  const bingoGridRef = useRef<HTMLDivElement>(null);
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
   const sensors = useSensors(
@@ -164,22 +168,17 @@ function App() {
     setActiveSong(null);
   }
 
-  const handleDownloadImage = async () => {
-    if (!gridRef.current) return;
+  const handleOpenShareModal = async () => {
+    if (!cardContainerRef.current) return;
     setIsEditing(false);
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 100)); // isEditingの反映を待つ
 
-    const canvas = await html2canvas(gridRef.current, { backgroundColor: null });
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = 'bingo-card.png';
-    link.click();
-  };
-
-  const handleShare = () => {
-    const text = encodeURIComponent('ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ');
-    const url = `https://twitter.com/intent/tweet?text=${text}`;
-    window.open(url, '_blank');
+    const canvas = await html2canvas(cardContainerRef.current, { 
+      backgroundColor: null,
+      scale: 2 // 解像度を2倍にする
+    });
+    setShareImageUrl(canvas.toDataURL('image/png'));
+    setIsShareModalOpen(true);
   };
 
   return (
@@ -211,12 +210,12 @@ function App() {
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
           {songs.length > 0 && (
-              <div className="bg-pink-100 rounded-2xl shadow-inner p-4">
+              <div ref={cardContainerRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
-                      <img src="/vite.svg" alt="Header" className="w-full h-full object-cover" />
+                      <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
                   </div>
                   <BingoGrid
-                    ref={gridRef}
+                    ref={bingoGridRef}
                     songs={songs}
                     isEditing={isEditing}
                     onEditCell={handleEditCell}
@@ -229,13 +228,13 @@ function App() {
           )}
 
           {songs.length > 0 && (
-            <div className="mt-8 text-center space-y-4">
-                <button onClick={handleDownloadImage} className="share-button bg-gradient-to-r from-cyan-400 to-blue-500">
-                    画像を保存
-                </button>
-                <button onClick={handleShare} className="share-button bg-black text-white">
-                    Xで共有
-                </button>
+            <div className="mt-8 text-center">
+              <button 
+                onClick={handleOpenShareModal} 
+                className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+              >
+                画像つきでXにシェアする
+              </button>
             </div>
           )}
 
@@ -246,6 +245,12 @@ function App() {
           songs={allSongs}
           onSelectSong={handleSelectSong}
           currentSongs={songs}
+        />
+        <ShareImageModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          imageUrl={shareImageUrl}
+          tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ"
         />
       </div>
       <DragOverlay dropAnimation={null}>
