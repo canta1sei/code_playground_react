@@ -22,12 +22,12 @@ function ShareImageModal({ isOpen, onClose, imageUrl, tweetText }: Props) {
           <p className="text-gray-600 mb-4">
             下の画像を長押し、または右クリックして保存してね！
           </p>
-          <div className="bg-gray-100 p-2 rounded-lg mb-4">
+          <div className="bg-pink-50 p-4 rounded-lg">
             <img src={imageUrl} alt="Bingo Card" className="w-full rounded-md" />
           </div>
           <button
             onClick={handleShareToX}
-            className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
+            className="w-full mt-4 py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
           >
             Xで結果をシェア
           </button>

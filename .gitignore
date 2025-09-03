@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # AWS CDK output
 /cdk.out/
+
+# テスト用キャプチャ
+testpic/

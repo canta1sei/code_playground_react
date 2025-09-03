@@ -18,7 +18,7 @@ interface Props {
 
 const BingoGrid = forwardRef<HTMLDivElement, Props>(({ songs, isEditing, onEditCell }, ref) => {
   return (
-    <div className="grid grid-cols-5 gap-2 text-center bingo-grid" ref={ref}>
+    <div className="grid grid-cols-5 gap-1 text-center bingo-grid" ref={ref}>
       {songs.map((song) => (
         <div key={song.id} onClick={() => !song.isFreeSpot && isEditing && onEditCell(song.id)}>
           <SongCard 
