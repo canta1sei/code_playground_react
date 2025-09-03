@@ -43,6 +43,10 @@ jobs:
         run: npm install
         working-directory: infra # infraディレクトリで実行
 
+      - name: Bootstrap CDK
+        run: npx cdk bootstrap -c env=${{ env.ENV_NAME }} --require-approval never
+        working-directory: infra
+
       - name: Deploy CDK Stack
         run: npx cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
         working-directory: infra
