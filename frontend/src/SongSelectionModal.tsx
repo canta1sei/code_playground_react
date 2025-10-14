@@ -1,14 +1,8 @@
 
 import { useState, useMemo } from 'react';
+import type { Song } from './App';
 
 // App.tsxと型定義を合わせる
-type Song = {
-  id: string;
-  songId: string;
-  title: string;
-  color: 'pink' | 'red' | 'yellow' | 'purple' | 'green';
-  isFreeSpot?: boolean;
-};
 
 interface Props {
   isOpen: boolean;

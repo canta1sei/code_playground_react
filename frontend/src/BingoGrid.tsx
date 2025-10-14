@@ -1,14 +1,8 @@
 
 import { SongCard } from './SongCard';
+import type { Song } from './App';
 
 // 型定義
-type Song = {
-  id: string;
-  songId: string;
-  title: string;
-  color: 'pink' | 'red' | 'yellow' | 'purple';
-  isFreeSpot?: boolean;
-};
 
 interface Props {
   songs: Song[];

@@ -16,7 +16,7 @@ import BingoGrid from './BingoGrid';
 import { SongCard } from './SongCard'; // SongCardをインポート
 
 // 曲データの型を拡張
-type Song = {
+export type Song = {
   id: string; // dnd-kitで必須
   songId: string;
   title: string;
