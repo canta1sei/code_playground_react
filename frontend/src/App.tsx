@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { 
   DndContext, 
   closestCenter, 
@@ -20,12 +20,12 @@ type Song = {
   id: string; // dnd-kitで必須
   songId: string;
   title: string;
-  color: 'pink' | 'red' | 'yellow' | 'purple' | 'green';
+  color: 'pink' | 'red' | 'yellow' | 'purple';
   isFreeSpot?: boolean;
 };
 
 const initialSongs: Song[] = [];
-const colors: ('pink' | 'red' | 'yellow' | 'purple' | 'green')[] = ['pink', 'red', 'yellow', 'purple', 'green'];
+const colors: ('pink' | 'red' | 'yellow' | 'purple')[] = ['pink', 'red', 'yellow', 'purple'];
 
 function App() {
   const [songs, setSongs] = useState<Song[]>(initialSongs);
@@ -164,16 +164,27 @@ function App() {
     setActiveSong(null);
   }
 
-  const handleDownloadImage = async () => {
-    if (!gridRef.current) return;
+  const handleDownloadImage = () => {
+    if (!gridRef.current) {
+      return;
+    }
+    // 編集モードをオフにしてから画像生成
     setIsEditing(false);
-    await new Promise(resolve => setTimeout(resolve, 100));
 
-    const canvas = await html2canvas(gridRef.current, { backgroundColor: null });
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = 'bingo-card.png';
-    link.click();
+    // 少し待ってからキャプチャしないと編集モードのUIが残る
+    setTimeout(() => {
+      toPng(gridRef.current!, { cacheBust: true, })
+        .then((dataUrl) => {
+          const link = document.createElement("a");
+          link.download = "bingo-card.png";
+          link.href = dataUrl;
+          link.click();
+        })
+        .catch((err) => {
+          console.error("oops, something went wrong!", err);
+          setError("画像の生成に失敗しました。");
+        });
+    }, 200);
   };
 
   const handleShare = () => {
@@ -211,12 +222,11 @@ function App() {
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
           {songs.length > 0 && (
-              <div className="bg-pink-100 rounded-2xl shadow-inner p-4">
+              <div ref={gridRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
-                      <img src="/vite.svg" alt="Header" className="w-full h-full object-cover" />
+                      <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
                   </div>
                   <BingoGrid
-                    ref={gridRef}
                     songs={songs}
                     isEditing={isEditing}
                     onEditCell={handleEditCell}
