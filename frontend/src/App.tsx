@@ -114,10 +114,10 @@ function App() {
     }
   };
 
-  const handleSelectSong = (newSong: Song) => {
+  const handleSelectSong = (song: Song) => {
     if (editingSongId !== null) {
       setSongs(currentSongs => 
-        currentSongs.map(song => song.id === editingSongId ? { ...newSong, id: editingSongId } : song)
+        currentSongs.map(s => s.id === editingSongId ? { ...song, id: editingSongId } : s)
       );
     }
     setIsModalOpen(false);
