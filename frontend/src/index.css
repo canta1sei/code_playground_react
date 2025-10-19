@@ -7,15 +7,11 @@
   touch-action: none;
 }
 
-.bingo-card-text-content {
-  /* フォントサイズを画面幅に応じて自動調整 */
-  font-size: clamp(0.5rem, 3.5vw, 0.9rem); /* 最小8px */
-  /* 行間を詰めて複数行でも見やすくする */
-  line-height: 1.3;
-  /* 単語を維持しつつ、はみ出す場合のみ折り返す */
-  overflow-wrap: break-word;
-  /* テキストの上下左右に少し余白を持たせる */
-  padding: 0.2rem;
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 @layer components {
