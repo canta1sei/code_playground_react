@@ -74,6 +74,9 @@ export class InfraStack extends cdk.Stack {
       environment: {
         BINGO_SONGS_TABLE_NAME: bingoSongsTable.tableName,
       },
+      bundling: {
+        externalModules: ['@aws-sdk/client-dynamodb', '@aws-sdk/lib-dynamodb'],
+      },
     });
 
     bingoSongsTable.grantReadData(bingoCardGeneratorLambda);
@@ -86,6 +89,9 @@ export class InfraStack extends cdk.Stack {
       handler: 'handler',
       environment: {
         BINGO_SONGS_TABLE_NAME: bingoSongsTable.tableName,
+      },
+      bundling: {
+        externalModules: ['@aws-sdk/client-dynamodb', '@aws-sdk/lib-dynamodb'],
       },
     });
 
@@ -100,6 +106,13 @@ export class InfraStack extends cdk.Stack {
       environment: {
         BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
         CARD_IMAGES_BUCKET_NAME: cardImagesBucket.bucketName,
+      },
+      bundling: {
+        externalModules: [
+          '@aws-sdk/client-dynamodb',
+          '@aws-sdk/lib-dynamodb',
+          '@aws-sdk/client-s3',
+        ],
       },
     });
 
