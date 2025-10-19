@@ -58,6 +58,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
     }));
 
+    console.log('Generated image URL:', imageUrl);
     return {
       statusCode: 200,
       body: JSON.stringify({ imageUrl }),
