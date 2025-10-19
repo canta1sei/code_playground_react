@@ -7,14 +7,14 @@ import {
   PointerSensor, 
   useSensor, 
   useSensors, 
-  DragOverlay, // DragOverlayをインポート
+  DragOverlay,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'; // DragStartEventをインポート
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
-import { SongCard } from './SongCard'; // SongCardをインポート
-import ShareModal from './ShareModal'; // ShareModalをインポート
+import { SongCard } from './SongCard';
+import ShareImageModal from './ShareImageModal'; // コンポーネント名をShareImageModalに統一
 
 // 曲データの型を拡張
 export type Song = {
@@ -37,16 +37,17 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+  
+  // 共有機能に関するStateを統一
   const [isSharing, setIsSharing] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [sharedImageUrl, setSharedImageUrl] = useState<string | null>(null);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
 
-  const gridRef = useRef<HTMLDivElement>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null); // 画像化する範囲のrefを統一
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // スワイプ操作を検知しやすくするための設定
       activationConstraint: {
         distance: 8,
       },
@@ -168,31 +169,9 @@ function App() {
     setActiveSong(null);
   }
 
-  const handleDownloadImage = () => {
-    if (!gridRef.current) {
-      return;
-    }
-    // 編集モードをオフにしてから画像生成
-    setIsEditing(false);
-
-    // 少し待ってからキャプチャしないと編集モードのUIが残る
-    setTimeout(() => {
-      toPng(gridRef.current!, { cacheBust: true, })
-        .then((dataUrl) => {
-          const link = document.createElement("a");
-          link.download = "bingo-card.png";
-          link.href = dataUrl;
-          link.click();
-        })
-        .catch((err) => {
-          console.error("oops, something went wrong!", err);
-          setError("画像の生成に失敗しました。");
-        });
-    }, 200);
-  };
-
-  const handleShareAndSave = async () => {
-    if (!gridRef.current) {
+  // 共有ロジックをこの関数に統合
+  const handleOpenShareModal = async () => {
+    if (!cardContainerRef.current) {
       setError("ビンゴカードが見つかりません。");
       return;
     }
@@ -203,7 +182,7 @@ function App() {
       setIsEditing(false);
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      const dataUrl = await toPng(gridRef.current, { cacheBust: true });
+      const dataUrl = await toPng(cardContainerRef.current, { cacheBust: true });
       const guestId = 'guest';
 
       const response = await fetch(`${API_BASE_URL}/share-card`, {
@@ -218,7 +197,7 @@ function App() {
       }
 
       const { imageUrl } = await response.json();
-      setSharedImageUrl(imageUrl);
+      setShareImageUrl(imageUrl);
       setIsShareModalOpen(true);
 
     } catch (err) {
@@ -258,7 +237,7 @@ function App() {
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
           {songs.length > 0 && (
-              <div ref={gridRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
+              <div ref={cardContainerRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
                       <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
                   </div>
@@ -275,13 +254,14 @@ function App() {
           )}
 
           {songs.length > 0 && (
-            <div className="mt-8 text-center space-y-4">
-                <button onClick={handleDownloadImage} className="share-button bg-gradient-to-r from-cyan-400 to-blue-500">
-                    画像を保存
-                </button>
-                <button onClick={handleShareAndSave} disabled={isSharing} className="share-button bg-black text-white">
-                    {isSharing ? '作成中...' : 'Xで共有'}
-                </button>
+            <div className="mt-8 text-center">
+              <button 
+                onClick={handleOpenShareModal} 
+                disabled={isSharing}
+                className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+              >
+                {isSharing ? '画像生成中...' : '画像つきでXにシェアする'}
+              </button>
             </div>
           )}
 
@@ -293,10 +273,11 @@ function App() {
           onSelectSong={handleSelectSong}
           currentSongs={songs}
         />
-        <ShareModal 
+        <ShareImageModal
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
-          imageUrl={sharedImageUrl}
+          imageUrl={shareImageUrl}
+          tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ"
         />
       </div>
       <DragOverlay dropAnimation={null}>
