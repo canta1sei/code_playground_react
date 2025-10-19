@@ -101,8 +101,9 @@ export class InfraStack extends cdk.Stack {
       depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
       handler: 'handler',
       environment: {
-        BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
+                BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
         CARD_IMAGES_BUCKET_NAME: cardImagesBucket.bucketName,
+        CLOUDFRONT_DOMAIN: distribution.distributionDomainName,
       },
       bundling: {
         externalModules: [
