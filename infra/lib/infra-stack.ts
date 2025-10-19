@@ -57,9 +57,7 @@ export class InfraStack extends cdk.Stack {
     // 画像保存用のS3バケット
     const cardImagesBucket = new s3.Bucket(this, `CardImagesBucket${suffix}`, {
       bucketName: `mononofu-bingo-images${suffix.toLowerCase()}`,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
-      accessControl: s3.BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
-      publicReadAccess: true,
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy,
       autoDeleteObjects: envName === 'dev',
     });
@@ -127,11 +125,18 @@ export class InfraStack extends cdk.Stack {
     });
 
     // CloudFront ディストリビューション
-    const distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
+        const distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
+      },
+      additionalBehaviors: {
+        '/images/*': {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(cardImagesBucket),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
+        },
       },
       defaultRootObject: 'index.html',
       errorResponses: [
