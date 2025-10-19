@@ -10,16 +10,17 @@ const s3Client = new S3Client({});
 
 const BINGO_CARDS_TABLE_NAME = process.env.BINGO_CARDS_TABLE_NAME;
 const CARD_IMAGES_BUCKET_NAME = process.env.CARD_IMAGES_BUCKET_NAME;
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN;
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   if (!event.body) {
     return { statusCode: 400, body: JSON.stringify({ message: 'Request body is missing' }) };
   }
 
-  if (!BINGO_CARDS_TABLE_NAME || !CARD_IMAGES_BUCKET_NAME) {
+  if (!BINGO_CARDS_TABLE_NAME || !CARD_IMAGES_BUCKET_NAME || !CLOUDFRONT_DOMAIN) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Environment variables for table or bucket name are not set.' }),
+      body: JSON.stringify({ message: 'Environment variables for table, bucket name or CloudFront domain are not set.' }),
     };
   }
 
@@ -44,7 +45,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       ContentType: 'image/png',
     }));
 
-    const s3Url = `https://${CARD_IMAGES_BUCKET_NAME}.s3.amazonaws.com/${s3Key}`;
+    const imageUrl = `https://${CLOUDFRONT_DOMAIN}/images/${s3Key}`;
 
     // Save to DynamoDB
     await docClient.send(new PutCommand({
@@ -52,14 +53,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       Item: {
         guestId,
         cardId,
-        s3Url,
+        imageUrl,
         createdAt: new Date().toISOString(),
       },
     }));
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ imageUrl: s3Url }),
+      body: JSON.stringify({ imageUrl }),
     };
 
   } catch (error) {

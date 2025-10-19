@@ -94,29 +94,6 @@ export class InfraStack extends cdk.Stack {
 
     bingoSongsTable.grantReadData(getAllSongsLambda);
 
-    // カード共有用のLambda関数
-    const shareCardLambda = new NodejsFunction(this, `ShareCardLambda${suffix}`, {
-      functionName: `ShareCardLambda${suffix}`,
-      entry: path.join(__dirname, '../../lambda/share-card.ts'),
-      depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
-      handler: 'handler',
-      environment: {
-                BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
-        CARD_IMAGES_BUCKET_NAME: cardImagesBucket.bucketName,
-        CLOUDFRONT_DOMAIN: distribution.distributionDomainName,
-      },
-      bundling: {
-        externalModules: [
-          '@aws-sdk/client-dynamodb',
-          '@aws-sdk/lib-dynamodb',
-          '@aws-sdk/client-s3',
-        ],
-      },
-    });
-
-    bingoCardsTable.grantWriteData(shareCardLambda);
-    cardImagesBucket.grantWrite(shareCardLambda);
-
     // フロントエンド用S3バケット
     const frontendBucket = new s3.Bucket(this, `FrontendBucket${suffix}`, {
       bucketName: `mononofu-bingo-frontend${suffix.toLowerCase()}`,
@@ -145,6 +122,29 @@ export class InfraStack extends cdk.Stack {
         { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
       ],
     });
+
+    // カード共有用のLambda関数
+    const shareCardLambda = new NodejsFunction(this, `ShareCardLambda${suffix}`, {
+      functionName: `ShareCardLambda${suffix}`,
+      entry: path.join(__dirname, '../../lambda/share-card.ts'),
+      depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
+      handler: 'handler',
+      environment: {
+                BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
+        CARD_IMAGES_BUCKET_NAME: cardImagesBucket.bucketName,
+        CLOUDFRONT_DOMAIN: distribution.distributionDomainName,
+      },
+      bundling: {
+        externalModules: [
+          '@aws-sdk/client-dynamodb',
+          '@aws-sdk/lib-dynamodb',
+          '@aws-sdk/client-s3',
+        ],
+      },
+    });
+
+    bingoCardsTable.grantWriteData(shareCardLambda);
+    cardImagesBucket.grantWrite(shareCardLambda);
 
     // API Gateway
     const httpApi = new apigw.HttpApi(this, `BingoApi${suffix}`, {
