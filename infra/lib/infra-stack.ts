@@ -33,9 +33,10 @@ export class InfraStack extends cdk.Stack {
       removalPolicy,
     });
 
-    new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
+    const bingoCardsTable = new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
       tableName: `BingoCardsTable${suffix}`,
-      partitionKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
+      partitionKey: { name: 'guestId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy,
     });
@@ -52,6 +53,16 @@ export class InfraStack extends cdk.Stack {
       partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy,
+    });
+
+    // 画像保存用のS3バケット
+    const cardImagesBucket = new s3.Bucket(this, `CardImagesBucket${suffix}`, {
+      bucketName: `mononofu-bingo-images${suffix.toLowerCase()}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
+      accessControl: s3.BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
+      publicReadAccess: true,
+      removalPolicy,
+      autoDeleteObjects: envName === 'dev',
     });
 
     // ビンゴカード生成用のLambda関数
@@ -79,6 +90,21 @@ export class InfraStack extends cdk.Stack {
     });
 
     bingoSongsTable.grantReadData(getAllSongsLambda);
+
+    // カード共有用のLambda関数
+    const shareCardLambda = new NodejsFunction(this, `ShareCardLambda${suffix}`, {
+      functionName: `ShareCardLambda${suffix}`,
+      entry: path.join(__dirname, '../../lambda/share-card.ts'),
+      depsLockFilePath: path.join(__dirname, '../../lambda/package-lock.json'),
+      handler: 'handler',
+      environment: {
+        BINGO_CARDS_TABLE_NAME: bingoCardsTable.tableName,
+        CARD_IMAGES_BUCKET_NAME: cardImagesBucket.bucketName,
+      },
+    });
+
+    bingoCardsTable.grantWriteData(shareCardLambda);
+    cardImagesBucket.grantWrite(shareCardLambda);
 
     // フロントエンド用S3バケット
     const frontendBucket = new s3.Bucket(this, `FrontendBucket${suffix}`, {
@@ -124,7 +150,11 @@ export class InfraStack extends cdk.Stack {
       integration: new HttpLambdaIntegration(`GetAllSongsIntegration${suffix}`, getAllSongsLambda),
     });
 
-    
+    httpApi.addRoutes({
+      path: '/share-card',
+      methods: [apigw.HttpMethod.POST],
+      integration: new HttpLambdaIntegration(`ShareCardIntegration${suffix}`, shareCardLambda),
+    });
 
     // アウトプット
     new cdk.CfnOutput(this, `ApiEndpoint${suffix}`, {

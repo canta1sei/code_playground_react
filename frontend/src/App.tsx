@@ -14,6 +14,7 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'; // DragStartE
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
 import { SongCard } from './SongCard'; // SongCardをインポート
+import ShareModal from './ShareModal'; // ShareModalをインポート
 
 // 曲データの型を拡張
 export type Song = {
@@ -36,6 +37,9 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+  const [isSharing, setIsSharing] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharedImageUrl, setSharedImageUrl] = useState<string | null>(null);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
@@ -187,10 +191,42 @@ function App() {
     }, 200);
   };
 
-  const handleShare = () => {
-    const text = encodeURIComponent('ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ');
-    const url = `https://twitter.com/intent/tweet?text=${text}`;
-    window.open(url, '_blank');
+  const handleShareAndSave = async () => {
+    if (!gridRef.current) {
+      setError("ビンゴカードが見つかりません。");
+      return;
+    }
+    setIsSharing(true);
+    setError(null);
+
+    try {
+      setIsEditing(false);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const dataUrl = await toPng(gridRef.current, { cacheBust: true });
+      const guestId = 'guest';
+
+      const response = await fetch(`${API_BASE_URL}/share-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: dataUrl, guestId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to share card.' }));
+        throw new Error(errorData.message);
+      }
+
+      const { imageUrl } = await response.json();
+      setSharedImageUrl(imageUrl);
+      setIsShareModalOpen(true);
+
+    } catch (err) {
+      console.error("oops, something went wrong!", err);
+      setError(err instanceof Error ? err.message : "画像の共有に失敗しました。");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -243,8 +279,8 @@ function App() {
                 <button onClick={handleDownloadImage} className="share-button bg-gradient-to-r from-cyan-400 to-blue-500">
                     画像を保存
                 </button>
-                <button onClick={handleShare} className="share-button bg-black text-white">
-                    Xで共有
+                <button onClick={handleShareAndSave} disabled={isSharing} className="share-button bg-black text-white">
+                    {isSharing ? '作成中...' : 'Xで共有'}
                 </button>
             </div>
           )}
@@ -256,6 +292,11 @@ function App() {
           songs={allSongs}
           onSelectSong={handleSelectSong}
           currentSongs={songs}
+        />
+        <ShareModal 
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          imageUrl={sharedImageUrl}
         />
       </div>
       <DragOverlay dropAnimation={null}>
