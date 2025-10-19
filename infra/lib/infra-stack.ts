@@ -33,10 +33,9 @@ export class InfraStack extends cdk.Stack {
       removalPolicy,
     });
 
-    const bingoCardsTable = new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
+    new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
       tableName: `BingoCardsTable${suffix}`,
-      partitionKey: { name: 'guestId', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
+      partitionKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy,
     });
