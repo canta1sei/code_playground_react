@@ -138,5 +138,15 @@ export class InfraStack extends cdk.Stack {
       value: frontendBucket.bucketName,
       exportName: `FrontendBucketName${suffix}`,
     });
+
+    new cdk.CfnOutput(this, `CloudFrontDistributionId${suffix}`, {
+      value: distribution.distributionId,
+      exportName: `CloudFrontDistributionId${suffix}`,
+    });
+
+    new cdk.CfnOutput(this, `CloudFrontUrl${suffix}`, {
+      value: distribution.distributionDomainName,
+      exportName: `CloudFrontUrl${suffix}`,
+    });
   }
 }
