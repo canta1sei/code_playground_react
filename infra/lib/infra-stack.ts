@@ -2,13 +2,13 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import *s apigw from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigw from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import *s path from 'path';
-import *s s3 from 'aws-cdk-lib/aws-s3';
-import *s s3deploy from 'aws-cdk-lib/aws-s3-deployment';
-import *s cloudfront from 'aws-cdk-lib/aws-cloudfront';
-import *s origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as path from 'path';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 
 // スタックに渡すプロパティの型を定義
 export interface InfraStackProps extends cdk.StackProps {
