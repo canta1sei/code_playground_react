@@ -21,7 +21,7 @@ export const handler = async (): Promise<APIGatewayProxyResult> => {
   try {
     const command = new ScanCommand({
       TableName: tableName,
-      ProjectionExpression: 'songId, title', // Only get necessary attributes
+      ProjectionExpression: 'songId, title, shortTitle', // Get songId, title, and shortTitle
     });
 
     const response = await docClient.send(command);
