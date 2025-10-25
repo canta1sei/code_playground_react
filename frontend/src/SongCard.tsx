@@ -10,15 +10,16 @@ type Song = {
 interface Props {
   song: Song;
   isEditing: boolean;
-  isOverlay?: boolean; // DragOverlay内での表示かどうかのフラグ
+  isOverlay?: boolean;
 }
 
-const colorClasses = {
-  pink: 'bg-pink-300 text-white',
-  red: 'bg-red-300 text-white',
-  yellow: 'bg-yellow-300 text-gray-800',
-  purple: 'bg-purple-300 text-white',
-  green: 'bg-green-300 text-white',
+// カラーセットを拡張してボーダーカラーも管理
+const colorStyles = {
+  pink:   { bg: 'bg-pink-300',   text: 'text-pink-900', border: 'border-pink-400' },
+  red:    { bg: 'bg-red-300',    text: 'text-red-900',   border: 'border-red-400' },
+  yellow: { bg: 'bg-yellow-300', text: 'text-yellow-900',border: 'border-yellow-400' },
+  purple: { bg: 'bg-purple-300', text: 'text-purple-900',border: 'border-purple-400' },
+  green:  { bg: 'bg-green-300',  text: 'text-green-900', border: 'border-green-400' },
 };
 
 export function SongCard({ song, isEditing, isOverlay }: Props) {
@@ -29,13 +30,12 @@ export function SongCard({ song, isEditing, isOverlay }: Props) {
     disabled: isDisabled,
   });
 
-  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+  const { setNodeRef: setDroppableRef } = useDroppable({
     id: song.id,
     disabled: isDisabled,
   });
 
   const style: React.CSSProperties = {
-    // isDraggingがtrueの時に元の要素を非表示にする
     visibility: isDragging && !isOverlay ? 'hidden' : 'visible',
   };
 
@@ -44,17 +44,18 @@ export function SongCard({ song, isEditing, isOverlay }: Props) {
     setDroppableRef(node);
   };
 
-  const cardClasses = `
-    aspect-square flex items-center justify-center p-1 rounded-lg text-xs md:text-sm font-semibold 
-    transition-transform duration-200 whitespace-normal relative overflow-hidden
-    ${song.isFreeSpot ? 'bg-pink-400 text-white shadow-lg' : colorClasses[song.color] + ' shadow'}
-    ${isEditing && !song.isFreeSpot ? 'cursor-grab' : 'cursor-default'}
-    ${isOverlay ? 'opacity-80 scale-105 shadow-lg spotlight' : ''} // Overlay用のスタイル
-  `;
+  const songColorStyle = song.isFreeSpot ? 
+    { bg: 'bg-pink-400', text: 'text-white', border: 'border-pink-500' } : 
+    colorStyles[song.color];
 
-  const overlayClasses = `
-    absolute inset-0 transition-all duration-300
-    ${isOver && !isDragging ? 'border-4 border-white border-dashed sparkle' : ''}
+  const cardClasses = `
+    aspect-square flex items-center justify-center p-1 rounded-lg text-center
+    text-xs md:text-sm font-bold leading-tight whitespace-normal overflow-hidden
+    border-2
+    transition-all duration-200
+    ${songColorStyle.bg} ${songColorStyle.text} ${songColorStyle.border}
+    ${isEditing && !song.isFreeSpot ? 'cursor-grab active:scale-95' : 'cursor-default'}
+    ${isOverlay ? 'opacity-80 scale-105' : ''}
   `;
 
   const content = song.isFreeSpot ? (
@@ -67,10 +68,7 @@ export function SongCard({ song, isEditing, isOverlay }: Props) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={cardClasses}>
-      <div className={overlayClasses} />
-      <div className="w-full h-full flex items-center justify-center text-center bingo-card-text-content">
-        {content}
-      </div>
+      {content}
     </div>
   );
 }

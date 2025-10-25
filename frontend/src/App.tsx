@@ -7,13 +7,14 @@ import {
   PointerSensor, 
   useSensor, 
   useSensors, 
-  DragOverlay, // DragOverlayをインポート
+  DragOverlay,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'; // DragStartEventをインポート
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 
 import SongSelectionModal from './SongSelectionModal';
 import BingoGrid from './BingoGrid';
-import { SongCard } from './SongCard'; // SongCardをインポート
+import { SongCard } from './SongCard';
+import ShareImageModal from './ShareImageModal'; // コンポーネント名をShareImageModalに統一
 
 // 曲データの型を拡張
 export type Song = {
@@ -36,13 +37,18 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+  const [userName, setUserName] = useState('ゲスト'); // New state for user name
+  
+  // 共有機能に関するStateを統一
+  const [isSharing, setIsSharing] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
 
-  const gridRef = useRef<HTMLDivElement>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null); // 画像化する範囲のrefを統一
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // スワイプ操作を検知しやすくするための設定
       activationConstraint: {
         distance: 8,
       },
@@ -164,33 +170,33 @@ function App() {
     setActiveSong(null);
   }
 
-  const handleDownloadImage = () => {
-    if (!gridRef.current) {
+  // 共有ロジックをこの関数に統合
+  const handleOpenShareModal = async () => {
+    if (!cardContainerRef.current) {
+      setError("ビンゴカードが見つかりません。");
       return;
     }
-    // 編集モードをオフにしてから画像生成
-    setIsEditing(false);
+    setIsSharing(true);
+    setError(null);
 
-    // 少し待ってからキャプチャしないと編集モードのUIが残る
-    setTimeout(() => {
-      toPng(gridRef.current!, { cacheBust: true, })
-        .then((dataUrl) => {
-          const link = document.createElement("a");
-          link.download = "bingo-card.png";
-          link.href = dataUrl;
-          link.click();
-        })
-        .catch((err) => {
-          console.error("oops, something went wrong!", err);
-          setError("画像の生成に失敗しました。");
-        });
-    }, 200);
-  };
+    try {
+      // 編集モードをオフにし、UIが更新されるのを少し待つ
+      setIsEditing(false);
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-  const handleShare = () => {
-    const text = encodeURIComponent('ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ');
-    const url = `https://twitter.com/intent/tweet?text=${text}`;
-    window.open(url, '_blank');
+      // html-to-image を使ってコンテナをPNGのData URIに変換
+      const dataUrl = await toPng(cardContainerRef.current, { cacheBust: true });
+      
+      // バックエンドに送信せず、直接Data URIをStateに設定
+      setShareImageUrl(dataUrl);
+      setIsShareModalOpen(true);
+
+    } catch (err) {
+      console.error("oops, something went wrong!", err);
+      setError(err instanceof Error ? err.message : "画像の生成に失敗しました。");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -210,19 +216,41 @@ function App() {
               </h1>
           </header>
 
-          <div className="flex justify-center gap-4 mb-6">
-              <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
-                  {isLoading ? '生成中...' : 'カードを作成'}
-              </button>
-              <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-gray-200 text-gray-600 hover:bg-gray-300">
-                  {isEditing ? '完了' : 'カードを編集'}
-              </button>
-          </div>
+          {songs.length === 0 && (
+            <>
+              <div className="mb-4">
+                  <label htmlFor="userName" className="block text-gray-700 text-sm font-bold mb-2">
+                    カードに記載される名前を入力:
+                  </label>
+                  <input
+                    type="text"
+                    id="userName"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="あなたの名前"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  />
+                </div>
+
+              <div className="flex justify-center gap-4 mb-6">
+                  <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
+                      {isLoading ? '生成中...' : 'カードを作成'}
+                  </button>
+              </div>
+            </>
+          )}
 
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
           {songs.length > 0 && (
-              <div ref={gridRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
+            <>
+              <div className="flex justify-center gap-4 mb-6">
+                  <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-pink-400 hover:bg-pink-500">
+                      {isEditing ? '完了' : 'カードを編集'}
+                  </button>
+              </div>
+
+              <div ref={cardContainerRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
                       <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
                   </div>
@@ -232,21 +260,30 @@ function App() {
                     onEditCell={handleEditCell}
                   />
                   <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
-                      <span>勝手にBINGO NIGHT</span>
-                      <span>Name: ゲスト</span>
+                      <span className="text-cute">勝手にBINGO NIGHT</span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="bg-transparent border-b border-gray-400 focus:outline-none text-gray-600 text-xs md:text-sm w-24 text-right"
+                        />
+                      ) : (
+                        <span>Name: {userName}</span>
+                      )}
                   </div>
               </div>
-          )}
 
-          {songs.length > 0 && (
-            <div className="mt-8 text-center space-y-4">
-                <button onClick={handleDownloadImage} className="share-button bg-gradient-to-r from-cyan-400 to-blue-500">
-                    画像を保存
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleOpenShareModal}
+                  disabled={isSharing}
+                  className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+                >
+                  {isSharing ? '画像生成中...' : '画像をX（Twitter）にシェア'}
                 </button>
-                <button onClick={handleShare} className="share-button bg-black text-white">
-                    Xで共有
-                </button>
-            </div>
+              </div>
+            </>
           )}
 
         </div>
@@ -256,6 +293,12 @@ function App() {
           songs={allSongs}
           onSelectSong={handleSelectSong}
           currentSongs={songs}
+        />
+        <ShareImageModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          imageUrl={shareImageUrl}
+          tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ"
         />
       </div>
       <DragOverlay dropAnimation={null}>

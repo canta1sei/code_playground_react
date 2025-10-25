@@ -33,12 +33,6 @@ export class InfraStack extends cdk.Stack {
       removalPolicy,
     });
 
-    new dynamodb.Table(this, `BingoCardsTable${suffix}`, {
-      tableName: `BingoCardsTable${suffix}`,
-      partitionKey: { name: 'cardId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy,
-    });
 
     new dynamodb.Table(this, `FirstSongGuessTable${suffix}`, {
       tableName: `FirstSongGuessTable${suffix}`,
@@ -54,6 +48,8 @@ export class InfraStack extends cdk.Stack {
       removalPolicy,
     });
 
+
+
     // ビンゴカード生成用のLambda関数
     const bingoCardGeneratorLambda = new NodejsFunction(this, `BingoCardGeneratorLambda${suffix}`, {
       functionName: `BingoCardGeneratorLambda${suffix}`,
@@ -62,6 +58,9 @@ export class InfraStack extends cdk.Stack {
       handler: 'handler',
       environment: {
         BINGO_SONGS_TABLE_NAME: bingoSongsTable.tableName,
+      },
+      bundling: {
+        externalModules: ['@aws-sdk/client-dynamodb', '@aws-sdk/lib-dynamodb'],
       },
     });
 
@@ -76,6 +75,9 @@ export class InfraStack extends cdk.Stack {
       environment: {
         BINGO_SONGS_TABLE_NAME: bingoSongsTable.tableName,
       },
+      bundling: {
+        externalModules: ['@aws-sdk/client-dynamodb', '@aws-sdk/lib-dynamodb'],
+      },
     });
 
     bingoSongsTable.grantReadData(getAllSongsLambda);
@@ -89,7 +91,7 @@ export class InfraStack extends cdk.Stack {
     });
 
     // CloudFront ディストリビューション
-    const distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
+        const distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -101,6 +103,7 @@ export class InfraStack extends cdk.Stack {
         { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
       ],
     });
+
 
     // API Gateway
     const httpApi = new apigw.HttpApi(this, `BingoApi${suffix}`, {
@@ -124,7 +127,6 @@ export class InfraStack extends cdk.Stack {
       integration: new HttpLambdaIntegration(`GetAllSongsIntegration${suffix}`, getAllSongsLambda),
     });
 
-    
 
     // アウトプット
     new cdk.CfnOutput(this, `ApiEndpoint${suffix}`, {
@@ -132,9 +134,9 @@ export class InfraStack extends cdk.Stack {
       exportName: `ApiEndpoint${suffix}`,
     });
 
-    new cdk.CfnOutput(this, `CloudFrontUrl${suffix}`, {
-      value: distribution.distributionDomainName,
-      exportName: `CloudFrontUrl${suffix}`,
+    new cdk.CfnOutput(this, `FrontendBucketName${suffix}`, {
+      value: frontendBucket.bucketName,
+      exportName: `FrontendBucketName${suffix}`,
     });
 
     new cdk.CfnOutput(this, `CloudFrontDistributionId${suffix}`, {
@@ -142,9 +144,9 @@ export class InfraStack extends cdk.Stack {
       exportName: `CloudFrontDistributionId${suffix}`,
     });
 
-    new cdk.CfnOutput(this, `FrontendBucketName${suffix}`, {
-      value: frontendBucket.bucketName,
-      exportName: `FrontendBucketName${suffix}`,
+    new cdk.CfnOutput(this, `CloudFrontUrl${suffix}`, {
+      value: distribution.distributionDomainName,
+      exportName: `CloudFrontUrl${suffix}`,
     });
   }
 }
