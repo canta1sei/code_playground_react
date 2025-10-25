@@ -37,6 +37,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
+  const [userName, setUserName] = useState('ゲスト'); // New state for user name
   
   // 共有機能に関するStateを統一
   const [isSharing, setIsSharing] = useState(false);
@@ -215,6 +216,20 @@ function App() {
               </h1>
           </header>
 
+          <div className="mb-4">
+              <label htmlFor="userName" className="block text-gray-700 text-sm font-bold mb-2">
+                名前を入力してください:
+              </label>
+              <input
+                type="text"
+                id="userName"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="あなたの名前"
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              />
+            </div>
+
           <div className="flex justify-center gap-4 mb-6">
               <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
                   {isLoading ? '生成中...' : 'カードを作成'}
@@ -237,8 +252,8 @@ function App() {
                     onEditCell={handleEditCell}
                   />
                   <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
-                      <span>勝手にBINGO NIGHT</span>
-                      <span>Name: ゲスト</span>
+                      <span className="text-cute">勝手にBINGO NIGHT</span>
+                      <span>Name: {userName}</span>
                   </div>
               </div>
           )}

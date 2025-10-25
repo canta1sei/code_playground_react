@@ -49,3 +49,8 @@
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to { transform: translate(-50%, -50%) rotate(360deg); }
 }
+
+.text-cute {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
+  text-shadow: 2px 2px 4px rgba(255, 192, 203, 0.6), -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
