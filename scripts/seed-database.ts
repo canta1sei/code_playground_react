@@ -16,6 +16,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 interface Song {
   songId: string;
   title: string;
+  shortTitle?: string; // Add shortTitle
 }
 
 const seedDatabase = async () => {
