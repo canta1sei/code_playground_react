@@ -216,32 +216,40 @@ function App() {
               </h1>
           </header>
 
-          <div className="mb-4">
-              <label htmlFor="userName" className="block text-gray-700 text-sm font-bold mb-2">
-                名前を入力してください:
-              </label>
-              <input
-                type="text"
-                id="userName"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="あなたの名前"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
+          {songs.length === 0 && (
+            <>
+              <div className="mb-4">
+                  <label htmlFor="userName" className="block text-gray-700 text-sm font-bold mb-2">
+                    カードに記載される名前を入力:
+                  </label>
+                  <input
+                    type="text"
+                    id="userName"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="あなたの名前"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  />
+                </div>
 
-          <div className="flex justify-center gap-4 mb-6">
-              <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
-                  {isLoading ? '生成中...' : 'カードを作成'}
-              </button>
-              <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-gray-200 text-gray-600 hover:bg-gray-300">
-                  {isEditing ? '完了' : 'カードを編集'}
-              </button>
-          </div>
+              <div className="flex justify-center gap-4 mb-6">
+                  <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
+                      {isLoading ? '生成中...' : 'カードを作成'}
+                  </button>
+              </div>
+            </>
+          )}
 
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
           {songs.length > 0 && (
+            <>
+              <div className="flex justify-center gap-4 mb-6">
+                  <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-pink-400 hover:bg-pink-500">
+                      {isEditing ? '完了' : 'カードを編集'}
+                  </button>
+              </div>
+
               <div ref={cardContainerRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
                       <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
@@ -253,21 +261,29 @@ function App() {
                   />
                   <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
                       <span className="text-cute">勝手にBINGO NIGHT</span>
-                      <span>Name: {userName}</span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="bg-transparent border-b border-gray-400 focus:outline-none text-gray-600 text-xs md:text-sm w-24 text-right"
+                        />
+                      ) : (
+                        <span>Name: {userName}</span>
+                      )}
                   </div>
               </div>
-          )}
 
-          {songs.length > 0 && (
-            <div className="mt-8 text-center">
-              <button 
-                onClick={handleOpenShareModal} 
-                disabled={isSharing}
-                className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
-              >
-                {isSharing ? '画像生成中...' : '画像つきでXにシェアする'}
-              </button>
-            </div>
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleOpenShareModal}
+                  disabled={isSharing}
+                  className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+                >
+                  {isSharing ? '画像生成中...' : '画像をX（Twitter）にシェア'}
+                </button>
+              </div>
+            </>
           )}
 
         </div>
