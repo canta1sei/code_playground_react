@@ -33,23 +33,6 @@ export class InfraStack extends cdk.Stack {
       removalPolicy,
     });
 
-
-    new dynamodb.Table(this, `FirstSongGuessTable${suffix}`, {
-      tableName: `FirstSongGuessTable${suffix}`,
-      partitionKey: { name: 'guessId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy,
-    });
-
-    new dynamodb.Table(this, `SongRequestsTable${suffix}`, {
-      tableName: `SongRequestsTable${suffix}`,
-      partitionKey: { name: 'requestId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy,
-    });
-
-
-
     // ビンゴカード生成用のLambda関数
     const bingoCardGeneratorLambda = new NodejsFunction(this, `BingoCardGeneratorLambda${suffix}`, {
       functionName: `BingoCardGeneratorLambda${suffix}`,
