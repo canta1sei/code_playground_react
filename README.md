@@ -51,10 +51,10 @@
 
 *   5x5のカード
 *   曲リストはDynamoDB（BingoSongsTable）
-*   Lambdaでランダムに25曲選択（seed対応で再現性あり）
-*   生成結果をBingoCardsTableに保存
-*   HTMLを画像化、Twitter(X)共有可能
+*   Lambdaでランダムに25曲選択
 *   **カード生成後、ユーザーが自由に曲を編集・並べ替え可能**
+*   **カードはhtml-to-imageの結果をBlobオブジェクトとして扱い、URL.createObjectURL()で一時的なURLを発行して<img>タグに設定する**
+*   Twitter(X)へ共有共有を促す
 
 ### **3-2. 一曲目予想＆称号付与**
 

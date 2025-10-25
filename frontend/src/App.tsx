@@ -179,30 +179,20 @@ function App() {
     setError(null);
 
     try {
+      // 編集モードをオフにし、UIが更新されるのを少し待つ
       setIsEditing(false);
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      // html-to-image を使ってコンテナをPNGのData URIに変換
       const dataUrl = await toPng(cardContainerRef.current, { cacheBust: true });
-      const guestId = 'guest';
-
-      const response = await fetch(`${API_BASE_URL}/share-card`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageData: dataUrl, guestId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to share card.' }));
-        throw new Error(errorData.message);
-      }
-
-      const { imageUrl } = await response.json();
-      setShareImageUrl(imageUrl);
+      
+      // バックエンドに送信せず、直接Data URIをStateに設定
+      setShareImageUrl(dataUrl);
       setIsShareModalOpen(true);
 
     } catch (err) {
       console.error("oops, something went wrong!", err);
-      setError(err instanceof Error ? err.message : "画像の共有に失敗しました。");
+      setError(err instanceof Error ? err.message : "画像の生成に失敗しました。");
     } finally {
       setIsSharing(false);
     }
