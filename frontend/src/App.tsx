@@ -86,17 +86,20 @@ function App() {
     if (!cardElement) return; // 要素がない場合は何もしない
 
     if (isEditing) {
-      // 編集モード中はビンゴカードのスクロールをロック
+      // 編集モード中はビンゴカードのスクロールとタッチアクションをロック
       cardElement.style.overflow = 'hidden';
+      cardElement.style.touchAction = 'none';
     } else {
       // 編集モードじゃなくなったらロックを解除
       cardElement.style.overflowY = 'auto'; // 縦方向のスクロールを許可
+      cardElement.style.touchAction = ''; // タッチアクションを元に戻す
     }
 
     // クリーンアップ関数：コンポーネントが消える時にもロックを解除するお作法
     return () => {
       if (cardElement) { // クリーンアップ時にも要素の存在を確認
         cardElement.style.overflowY = ''; // クリーンアップ時は元に戻す
+        cardElement.style.touchAction = ''; // クリーンアップ時は元に戻す
       }
     };
   }, [isEditing]); // isEditingが変わるたびにこの処理が走る！
