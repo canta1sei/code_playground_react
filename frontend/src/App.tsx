@@ -78,6 +78,22 @@ function App() {
     fetchAllSongs();
   }, [API_BASE_URL]);
 
+  // 編集モードの状態に応じて画面全体のスクロールを制御
+  useEffect(() => {
+    if (isEditing) {
+      // 編集モード中はスクロールをロック
+      document.body.style.overflow = 'hidden';
+    } else {
+      // 編集モードじゃなくなったらロックを解除
+      document.body.style.overflow = '';
+    }
+
+    // クリーンアップ関数：コンポーネントが消える時にもロックを解除するお作法
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isEditing]); // isEditingが変わるたびにこの処理が走る！
+  
   const handleGenerate = async () => {
     setIsLoading(true);
     setError(null);
@@ -137,13 +153,9 @@ function App() {
     if (song) {
       setActiveSong(song);
     }
-    const grid = document.querySelector(".bingo-grid") as HTMLElement;
-    if (grid) grid.style.overflow = "hidden";
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const grid = document.querySelector(".bingo-grid") as HTMLElement;
-    if (grid) grid.style.overflow = "";
 
     const { active, over } = event;
 
@@ -166,8 +178,6 @@ function App() {
   }
 
   function handleDragCancel() {
-    const grid = document.querySelector(".bingo-grid") as HTMLElement;
-    if (grid) grid.style.overflow = "";
     setActiveSong(null);
   }
 
