@@ -5,6 +5,7 @@ import {
   closestCenter, 
   KeyboardSensor, 
   PointerSensor, 
+  TouchSensor,
   useSensor, 
   useSensors, 
   DragOverlay,
@@ -49,6 +50,7 @@ function App() {
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
   const sensors = useSensors(
+    useSensor(TouchSensor),
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
@@ -93,7 +95,7 @@ function App() {
       document.body.style.overflow = '';
     };
   }, [isEditing]); // isEditingが変わるたびにこの処理が走る！
-  
+
   const handleGenerate = async () => {
     setIsLoading(true);
     setError(null);
