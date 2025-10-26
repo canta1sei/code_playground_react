@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 .bingo-grid {
-  /* iOSでのスワイプバックや、Androidでのスワイプでのブラウザ更新を防ぐ */
-  touch-action: none;
+  /* touch-action: none; */
 }
 
 .line-clamp-3 {
