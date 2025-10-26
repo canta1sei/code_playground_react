@@ -46,27 +46,24 @@ jobs:
       - name: Bootstrap CDK
         run: |
           echo "Bootstrapping main region (${{ env.AWS_REGION }})..."
-          npx cdk bootstrap
+          npx cdk bootstrap -c env=${{ env.ENV_NAME }}
           echo "Bootstrapping certificate region (us-east-1)..."
-          AWS_REGION=us-east-1 npx cdk bootstrap
+          AWS_REGION=us-east-1 npx cdk bootstrap -c env=${{ env.ENV_NAME }}
         working-directory: infra
 
       - name: Deploy CDK Stacks
         id: cdk_deploy
         working-directory: infra
         run: |
+          # 1. prod環境の場合のみ、証明書スタックをデプロイ
           if [ "${{ env.ENV_NAME }}" == "prod" ]; then
-            echo "--- Deploying PROD environment ---"
-            echo "Step 1: Deploying Certificate Stack to us-east-1..."
-            AWS_REGION=us-east-1 npx cdk deploy TdfArenaCertificateStack --require-approval never
-            
-            echo "Step 2: Deploying Main Stack to ap-northeast-1..."
-            npx cdk deploy InfraStack-prod --require-approval never --outputs-file cdk-outputs.json
-          else
-            echo "--- Deploying DEV environment ---"
-            echo "Deploying Main Stack to ap-northeast-1..."
-            npx cdk deploy InfraStack-dev --require-approval never --outputs-file cdk-outputs.json
+            echo "--- Deploying Certificate Stack for PROD ---"
+            AWS_REGION=us-east-1 npx cdk deploy TdfArenaCertificateStack -c env=prod --require-approval never
           fi
+          
+          # 2. メインのスタックをデプロイ (prod/dev共通)
+          echo "--- Deploying Main Stack for ${{ env.ENV_NAME }} ---"
+          npx cdk deploy InfraStack-${{ env.ENV_NAME }} -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
 
       - name: Extract CDK Outputs
         id: get_outputs
