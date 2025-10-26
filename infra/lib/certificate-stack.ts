@@ -23,6 +23,7 @@ export class CertificateStack extends cdk.Stack {
 
     this.certificate = new acm.Certificate(this, 'Certificate', {
       domainName: domainName,
+      subjectAlternativeNames: [`dev.${domainName}`],
       validation: acm.CertificateValidation.fromDns(hostedZone),
     });
 

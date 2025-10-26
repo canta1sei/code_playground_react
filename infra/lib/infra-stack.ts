@@ -22,8 +22,18 @@ export class InfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: InfraStackProps) {
     super(scope, id, props);
 
-    const { envName, certificate } = props; // <- certificate を受け取る
+    const { envName } = props;
+    let { certificate } = props; // certificateを可変にする
     const suffix = `-${envName}`;
+
+    // ▼▼▼ 追加 ▼▼▼
+    // dev環境で、かつ証明書がpropsで渡されなかった場合、
+    // エクスポートされた値 (TdfArenaCertificateArn) から証明書をインポートする
+    if (envName === 'dev' && !certificate) {
+      certificate = acm.Certificate.fromCertificateArn(this, 'ImportedCertificate',
+        cdk.Fn.importValue('TdfArenaCertificateArn')
+      );
+    }
 
     // 環境に応じた削除ポリシーを決定 (prodではリソースを保持)
     const removalPolicy = envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
@@ -78,16 +88,17 @@ export class InfraStack extends cdk.Stack {
 
     // --- ここからドメイン関連の設定 ---
     let distribution;
+    const apiAllowedOrigins: string[] = [];
 
     if (envName === 'prod') {
       const domainName = 'tdf-arena.com';
+      apiAllowedOrigins.push(`https://${domainName}`);
+
       const hostedZone = route53.PublicHostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
         zoneName: domainName,
         hostedZoneId: 'Z07566193RAUOSUIHU9W5',
       });
 
-      // ▼▼▼ 変更点 ▼▼▼
-      // 証明書作成ロジックを削除し、propsから受け取った証明書を利用する
       if (!certificate) {
         throw new Error('Certificate is required for prod environment');
       }
@@ -114,6 +125,18 @@ export class InfraStack extends cdk.Stack {
         target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
       });
     } else {
+      const domainName = 'dev.tdf-arena.com';
+      apiAllowedOrigins.push(`https://${domainName}`);
+
+      const hostedZone = route53.PublicHostedZone.fromHostedZoneAttributes(this, 'HostedZone-dev', {
+        zoneName: 'tdf-arena.com',
+        hostedZoneId: 'Z07566193RAUOSUIHU9W5',
+      });
+
+      if (!certificate) {
+        throw new Error('Certificate is required for dev environment');
+      }
+
       // CloudFront ディストリビューション (dev)
       distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
         defaultBehavior: {
@@ -121,11 +144,20 @@ export class InfraStack extends cdk.Stack {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
         },
+        domainNames: [domainName],
+        certificate: certificate,
         defaultRootObject: 'index.html',
         errorResponses: [
           { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
           { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
         ],
+      });
+
+      // Route 53にAレコードを登録
+      new route53.ARecord(this, 'ARecord-dev', {
+        zone: hostedZone,
+        recordName: 'dev',
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
       });
     }
     // --- ここまでドメイン関連の設定 ---
@@ -137,7 +169,7 @@ export class InfraStack extends cdk.Stack {
       corsPreflight: {
         allowHeaders: ['Content-Type'],
         allowMethods: [apigw.CorsHttpMethod.GET, apigw.CorsHttpMethod.POST, apigw.CorsHttpMethod.OPTIONS],
-        allowOrigins: envName === 'prod' ? [`https://${distribution.distributionDomainName}`] : ['*'],
+        allowOrigins: apiAllowedOrigins,
       },
     });
 

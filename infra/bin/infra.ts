@@ -45,12 +45,12 @@ if (envName === 'prod') {
 
 } else {
   // --- 開発環境 (dev) ---
+  // InfraStackが内部で証明書をインポートするため、ここでは証明書を渡さない
   new InfraStack(app, `InfraStack-${envName}`, {
     env: {
       account: awsAccount,
       region: mainRegion,
     },
     envName: envName,
-    // dev環境では証明書は不要
   });
 }
