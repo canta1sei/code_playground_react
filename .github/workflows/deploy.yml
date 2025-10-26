@@ -55,13 +55,11 @@ jobs:
         id: cdk_deploy
         working-directory: infra
         run: |
-          # 1. prod環境の場合のみ、証明書スタックをデプロイ
-          if [ "${{ env.ENV_NAME }}" == "prod" ]; then
-            echo "--- Deploying Certificate Stack for PROD ---"
-            AWS_REGION=us-east-1 npx cdk deploy TdfArenaCertificateStack -c env=prod --require-approval never
-          fi
-          
-          # 2. メインのスタックをデプロイ (prod/dev共通)
+          # 最初に証明書スタックのデプロイを試みる (初回以降は差分がないため即座に完了する)
+          echo "--- Deploying Certificate Stack (if needed) ---"
+          AWS_REGION=us-east-1 npx cdk deploy TdfArenaCertificateStack -c env=${{ env.ENV_NAME }} --require-approval never
+
+          # 次にメインのスタックをデプロイする
           echo "--- Deploying Main Stack for ${{ env.ENV_NAME }} ---"
           npx cdk deploy InfraStack-${{ env.ENV_NAME }} -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
 
