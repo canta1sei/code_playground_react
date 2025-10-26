@@ -1,4 +1,3 @@
-
 import { SongCard } from './SongCard';
 import type { Song } from './App';
 
@@ -12,7 +11,8 @@ interface Props {
 
 const BingoGrid = ({ songs, isEditing, onEditCell }: Props) => {
   return (
-    <div className="grid grid-cols-5 gap-2 text-center bingo-grid">
+    // ▼④枠の間隔を狭めるため gap-1 に変更
+    <div className="grid grid-cols-5 gap-1 text-center bingo-grid">
       {songs.map((song) => (
         <div key={song.id} onClick={() => !song.isFreeSpot && isEditing && onEditCell(song.id)}>
           <SongCard 

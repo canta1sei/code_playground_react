@@ -209,7 +209,8 @@ function App() {
       onDragCancel={handleDragCancel}
     >
       <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md mx-auto bg-white rounded-3xl shadow-lg p-6 md:p-8">
+        {/* ▼画面サイズに依らずカード全体の幅を固定 */}
+        <div className="w-[420px] mx-auto bg-white rounded-3xl shadow-lg p-6">
           
           <header className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
@@ -251,7 +252,8 @@ function App() {
                   </button>
               </div>
 
-              <div ref={cardContainerRef} className="bg-pink-100 rounded-2xl shadow-inner p-4">
+              {/* ▼③サイズ固定のため、固定幅w-[370px]に変更。余白もp-2に調整 */}
+              <div ref={cardContainerRef} className="w-[370px] mx-auto bg-pink-100 rounded-2xl shadow-inner p-2">
                   <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
                       <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
                   </div>
