@@ -80,19 +80,24 @@ function App() {
     fetchAllSongs();
   }, [API_BASE_URL]);
 
-  // 編集モードの状態に応じて画面全体のスクロールを制御
+  // 編集モードの状態に応じてビンゴカードのスクロールを制御
   useEffect(() => {
+    const cardElement = cardContainerRef.current;
+    if (!cardElement) return; // 要素がない場合は何もしない
+
     if (isEditing) {
-      // 編集モード中はスクロールをロック
-      document.body.style.overflow = 'hidden';
+      // 編集モード中はビンゴカードのスクロールをロック
+      cardElement.style.overflow = 'hidden';
     } else {
       // 編集モードじゃなくなったらロックを解除
-      document.body.style.overflow = '';
+      cardElement.style.overflow = '';
     }
 
     // クリーンアップ関数：コンポーネントが消える時にもロックを解除するお作法
     return () => {
-      document.body.style.overflow = '';
+      if (cardElement) { // クリーンアップ時にも要素の存在を確認
+        cardElement.style.overflow = '';
+      }
     };
   }, [isEditing]); // isEditingが変わるたびにこの処理が走る！
 
@@ -199,6 +204,8 @@ function App() {
 
       // html-to-image を使ってコンテナをPNGのData URIに変換
       const dataUrl = await toPng(cardContainerRef.current, { cacheBust: true });
+
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
