@@ -1,5 +1,3 @@
-
-
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -17,13 +15,24 @@ function ShareImageModal({ isOpen, onClose, imageUrl, tweetText }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
+      {/* ▼閉じるボタンを配置するためにrelativeを指定 */}
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col relative">
+        {/* ▼右上に表示する閉じるボタン */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-3xl leading-none w-8 h-8 z-10"
+          aria-label="閉じる"
+        >
+          &times;
+        </button>
+
         <div className="p-6 text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-2">画像を保存してシェア！</h2>
           <p className="text-gray-600 mb-4">
             下の画像を長押し、または右クリックして保存してね！
           </p>
-          <div className="bg-pink-50 p-4 rounded-lg">
+          {/* ▼あたり判定を広げるため、画像周囲の余白を削除 */}
+          <div className="bg-pink-50 rounded-lg">
             <img src={imageUrl} alt="Bingo Card" className="w-full rounded-md" />
           </div>
           <button
@@ -33,11 +42,8 @@ function ShareImageModal({ isOpen, onClose, imageUrl, tweetText }: Props) {
             Xで結果をシェア
           </button>
         </div>
-        <div className="p-4 border-t text-center">
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
-            閉じる
-          </button>
-        </div>
+
+        {/* ▼フッターの閉じるボタンは不要なため削除 */}
       </div>
     </div>
   );
