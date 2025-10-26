@@ -1,4 +1,3 @@
-import React, { forwardRef } from 'react'; // forwardRefをインポート
 import { SongCard } from './SongCard';
 import type { Song } from './App';
 
@@ -10,11 +9,10 @@ interface Props {
   onEditCell: (id: string) => void;
 }
 
-// forwardRefを使ってrefを受け取れるようにする
-const BingoGrid = forwardRef<HTMLDivElement, Props>(({ songs, isEditing, onEditCell }, ref) => {
+const BingoGrid = ({ songs, isEditing, onEditCell }: Props) => {
   return (
     // ▼④枠の間隔を狭めるため gap-1 に変更
-    <div ref={ref} className="grid grid-cols-5 gap-1 text-center bingo-grid"> {/* refをdivにアタッチ */}
+    <div className="grid grid-cols-5 gap-1 text-center bingo-grid">
       {songs.map((song) => (
         <div key={song.id} onClick={() => !song.isFreeSpot && isEditing && onEditCell(song.id)}>
           <SongCard 
@@ -25,6 +23,6 @@ const BingoGrid = forwardRef<HTMLDivElement, Props>(({ songs, isEditing, onEditC
       ))}
     </div>
   );
-});
+};
 
 export default BingoGrid;
