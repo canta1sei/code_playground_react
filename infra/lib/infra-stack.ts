@@ -22,18 +22,8 @@ export class InfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: InfraStackProps) {
     super(scope, id, props);
 
-    const { envName } = props;
-    let { certificate } = props; // certificateを可変にする
+    const { envName, certificate } = props; // <- certificate を受け取る
     const suffix = `-${envName}`;
-
-    // ▼▼▼ 追加 ▼▼▼
-    // dev環境で、かつ証明書がpropsで渡されなかった場合、
-    // エクスポートされた値 (TdfArenaCertificateArn) から証明書をインポートする
-    if (envName === 'dev' && !certificate) {
-      certificate = acm.Certificate.fromCertificateArn(this, 'ImportedCertificate',
-        cdk.Fn.importValue('TdfArenaCertificateArn')
-      );
-    }
 
     // 環境に応じた削除ポリシーを決定 (prodではリソースを保持)
     const removalPolicy = envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
