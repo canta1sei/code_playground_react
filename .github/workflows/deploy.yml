@@ -44,15 +44,24 @@ jobs:
         working-directory: infra # infraディレクトリで実行
 
       - name: Bootstrap CDK
-        run: npx cdk bootstrap -c env=${{ env.ENV_NAME }} --require-approval never
+        run: |
+          echo "Bootstrapping main region (${{ env.AWS_REGION }})..."
+          npx cdk bootstrap -c env=${{ env.ENV_NAME }}
+          echo "Bootstrapping certificate region (us-east-1)..."
+          AWS_REGION=us-east-1 npx cdk bootstrap -c env=${{ env.ENV_NAME }}
         working-directory: infra
 
-      - name: Deploy CDK Stack
-        run: npx cdk deploy -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
+      - name: Deploy CDK Stacks
+        id: cdk_deploy
         working-directory: infra
-        id: cdk_deploy # ステップにIDを付与して出力を参照できるようにする
+        run: |
+          # 最初に証明書スタックのデプロイを試みる (初回以降は差分がないため即座に完了する)
+          echo "--- Deploying Certificate Stack (if needed) ---"
+          AWS_REGION=us-east-1 npx cdk deploy TdfArenaCertificateStack -c env=${{ env.ENV_NAME }} --require-approval never
 
-      
+          # 次にメインのスタックをデプロイする
+          echo "--- Deploying Main Stack for ${{ env.ENV_NAME }} ---"
+          npx cdk deploy InfraStack-${{ env.ENV_NAME }} -c env=${{ env.ENV_NAME }} --require-approval never --outputs-file cdk-outputs.json
 
       - name: Extract CDK Outputs
         id: get_outputs

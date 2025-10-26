@@ -18,19 +18,19 @@ const mainRegion = 'ap-northeast-1'; // メインリージョンを東京に設�
 const domainName = 'tdf-arena.com';
 const hostedZoneId = 'Z07566193RAUOSUIHU9W5';
 
+// 1. 証明書スタックを us-east-1 に作成
+const certificateStack = new CertificateStack(app, 'TdfArenaCertificateStack', {
+  env: {
+    account: awsAccount,
+    region: 'us-east-1', // CloudFrontの証明書はus-east-1にある必要がある
+  },
+  domainName: domainName,
+  hostedZoneId: hostedZoneId,
+  crossRegionReferences: true, // リージョンをまたいで参照を有効化
+});
+
 if (envName === 'prod') {
   // --- 本番環境 (prod) ---
-
-  // 1. 証明書スタックを us-east-1 に作成
-  const certificateStack = new CertificateStack(app, 'TdfArenaCertificateStack', {
-    env: {
-      account: awsAccount,
-      region: 'us-east-1', // CloudFrontの証明書はus-east-1にある必要がある
-    },
-    domainName: domainName,
-    hostedZoneId: hostedZoneId,
-    crossRegionReferences: true, // リージョンをまたいで参照を有効化
-  });
 
   // 2. メインのInfraStackを東京リージョンに作成
   new InfraStack(app, `InfraStack-${envName}`, {
@@ -51,6 +51,7 @@ if (envName === 'prod') {
       region: mainRegion,
     },
     envName: envName,
-    // dev環境では証明書は不要
+    certificate: certificateStack.certificate, // CertificateStackから証明書を受け取る
+    crossRegionReferences: true, // リージョンをまたいで参照を有効化
   });
 }

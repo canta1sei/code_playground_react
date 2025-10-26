@@ -78,16 +78,17 @@ export class InfraStack extends cdk.Stack {
 
     // --- ここからドメイン関連の設定 ---
     let distribution;
+    const apiAllowedOrigins: string[] = [];
 
     if (envName === 'prod') {
       const domainName = 'tdf-arena.com';
+      apiAllowedOrigins.push(`https://${domainName}`);
+
       const hostedZone = route53.PublicHostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
         zoneName: domainName,
         hostedZoneId: 'Z07566193RAUOSUIHU9W5',
       });
 
-      // ▼▼▼ 変更点 ▼▼▼
-      // 証明書作成ロジックを削除し、propsから受け取った証明書を利用する
       if (!certificate) {
         throw new Error('Certificate is required for prod environment');
       }
@@ -114,6 +115,18 @@ export class InfraStack extends cdk.Stack {
         target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
       });
     } else {
+      const domainName = 'dev.tdf-arena.com';
+      apiAllowedOrigins.push(`https://${domainName}`);
+
+      const hostedZone = route53.PublicHostedZone.fromHostedZoneAttributes(this, 'HostedZone-dev', {
+        zoneName: 'tdf-arena.com',
+        hostedZoneId: 'Z07566193RAUOSUIHU9W5',
+      });
+
+      if (!certificate) {
+        throw new Error('Certificate is required for dev environment');
+      }
+
       // CloudFront ディストリビューション (dev)
       distribution = new cloudfront.Distribution(this, `CloudFrontDistribution${suffix}`, {
         defaultBehavior: {
@@ -121,11 +134,20 @@ export class InfraStack extends cdk.Stack {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
         },
+        domainNames: [domainName],
+        certificate: certificate,
         defaultRootObject: 'index.html',
         errorResponses: [
           { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
           { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
         ],
+      });
+
+      // Route 53にAレコードを登録
+      new route53.ARecord(this, 'ARecord-dev', {
+        zone: hostedZone,
+        recordName: 'dev',
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
       });
     }
     // --- ここまでドメイン関連の設定 ---
@@ -137,7 +159,7 @@ export class InfraStack extends cdk.Stack {
       corsPreflight: {
         allowHeaders: ['Content-Type'],
         allowMethods: [apigw.CorsHttpMethod.GET, apigw.CorsHttpMethod.POST, apigw.CorsHttpMethod.OPTIONS],
-        allowOrigins: envName === 'prod' ? [`https://${distribution.distributionDomainName}`] : ['*'],
+        allowOrigins: apiAllowedOrigins,
       },
     });
 
