@@ -90,13 +90,13 @@ function App() {
       cardElement.style.overflow = 'hidden';
     } else {
       // 編集モードじゃなくなったらロックを解除
-      cardElement.style.overflow = '';
+      cardElement.style.overflowY = 'auto'; // 縦方向のスクロールを許可
     }
 
     // クリーンアップ関数：コンポーネントが消える時にもロックを解除するお作法
     return () => {
       if (cardElement) { // クリーンアップ時にも要素の存在を確認
-        cardElement.style.overflow = '';
+        cardElement.style.overflowY = ''; // クリーンアップ時は元に戻す
       }
     };
   }, [isEditing]); // isEditingが変わるたびにこの処理が走る！
