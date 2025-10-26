@@ -54,6 +54,8 @@ jobs:
       - name: Deploy CDK Stacks
         id: cdk_deploy
         working-directory: infra
+        env:
+          VITE_ALLOWED_ORIGIN: ${{ secrets.VITE_ALLOWED_ORIGIN }}
         run: |
           # 最初に証明書スタックのデプロイを試みる (初回以降は差分がないため即座に完了する)
           echo "--- Deploying Certificate Stack (if needed) ---"

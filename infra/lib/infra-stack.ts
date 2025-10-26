@@ -118,6 +118,11 @@ export class InfraStack extends cdk.Stack {
       const domainName = 'dev.tdf-arena.com';
       apiAllowedOrigins.push(`https://${domainName}`);
 
+      const localOrigin = process.env.VITE_ALLOWED_ORIGIN;
+      if (localOrigin) {
+        apiAllowedOrigins.push(localOrigin);
+      }
+
       const hostedZone = route53.PublicHostedZone.fromHostedZoneAttributes(this, 'HostedZone-dev', {
         zoneName: 'tdf-arena.com',
         hostedZoneId: 'Z07566193RAUOSUIHU9W5',
