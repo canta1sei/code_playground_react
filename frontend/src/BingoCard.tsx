@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import BingoGrid from './BingoGrid';
 import type { Song } from './types';
 

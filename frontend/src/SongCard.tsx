@@ -1,5 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import type { Song } from './App'; // Import Song type from App.tsx
+import type { Song } from './types'; // Import Song type from types.ts
 
 interface Props {
   song: Song;
