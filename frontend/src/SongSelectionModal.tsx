@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import type { Song } from './App';
+import type { Song } from './types';
 
 // App.tsxと型定義を合わせる
 

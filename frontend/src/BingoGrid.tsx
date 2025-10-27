@@ -1,5 +1,5 @@
 import { SongCard } from './SongCard';
-import type { Song } from './App';
+import type { Song } from './types';
 
 // 型定義
 
@@ -10,9 +10,11 @@ interface Props {
 }
 
 const BingoGrid = ({ songs, isEditing, onEditCell }: Props) => {
+  // isEditingの状態に応じてクラス名を動的に変更
+  const gridClassName = `grid grid-cols-5 gap-1 text-center bingo-grid ${isEditing ? 'is-editing' : ''}`;
+
   return (
-    // ▼④枠の間隔を狭めるため gap-1 に変更
-    <div className="grid grid-cols-5 gap-1 text-center bingo-grid">
+    <div className={gridClassName}>
       {songs.map((song) => (
         <div key={song.id} onClick={() => !song.isFreeSpot && isEditing && onEditCell(song.id)}>
           <SongCard 

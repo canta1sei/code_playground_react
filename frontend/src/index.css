@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-.bingo-grid {
-  /* iOSでのスワイプバックや、Androidでのスワイプでのブラウザ更新を防ぐ */
+.bingo-grid.is-editing {
   touch-action: none;
 }
 
