@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { createObjectCsvWriter } from 'csv-writer';
 
-// 環境変数を読み込み
+// 環境変数
 dotenv.config({ path: 'config/.env' });
 
 const clientId = process.env.SPOTIFY_CLIENT_ID;
@@ -20,10 +20,10 @@ const spotifyApi = new SpotifyWebApi({
   clientSecret,
 });
 
-// ももクロのSpotifyアーティストID
+// ✅ 正しいももクロのアーティストID
 const artistId = '3Zl0EsuYV23OgNw6WqGelN';
 
-// ページング対応ヘルパー
+// ページング対応
 async function getAllPages<T>(
   fetchFunction: (options: { limit: number; offset: number }) => Promise<{ body: { items: T[]; next: string | null } }>
 ): Promise<T[]> {
@@ -60,19 +60,35 @@ const getMomocloSongs = async () => {
 
     console.log(`✨ ${uniqueAlbums.length} 個のアルバムが見つかったよ！`);
 
-    const allTracks: { album: string; track: string; trackNumber: number }[] = [];
+    const allTracks: {
+      id: string;
+      album: string;
+      releaseDate: string;
+      track: string;
+      trackNumber: number;
+      durationMs: number;
+      spotifyUrl: string;
+    }[] = [];
+
+    let counter = 1;
 
     for (const album of uniqueAlbums) {
       console.log(`🎶 アルバム「${album.name}」の曲を取得中...`);
       const tracks = await getAllPages(options => spotifyApi.getAlbumTracks(album.id, options));
 
-      tracks.forEach(track => {
+      for (const track of tracks) {
+        const customId = `MCZ${counter.toString().padStart(5, '0')}`;
         allTracks.push({
+          id: customId,
           album: album.name,
+          releaseDate: album.release_date,
           track: track.name,
           trackNumber: track.track_number,
+          durationMs: track.duration_ms,
+          spotifyUrl: track.external_urls?.spotify || '',
         });
-      });
+        counter++;
+      }
     }
 
     // ソート（アルバム名 → トラック番号）
@@ -81,20 +97,24 @@ const getMomocloSongs = async () => {
       return a.album.localeCompare(b.album);
     });
 
-    // CSV出力準備
+    // CSV出力
     const csvWriter = createObjectCsvWriter({
-      path: path.resolve('momoclo_songs.csv'),
+      path: path.resolve('./data/momoclo_songs.csv'),
       header: [
+        { id: 'id', title: 'ID' },
         { id: 'album', title: 'Album' },
+        { id: 'releaseDate', title: 'Release Date' },
         { id: 'trackNumber', title: 'Track Number' },
         { id: 'track', title: 'Track Name' },
+        { id: 'durationMs', title: 'Duration (ms)' },
+        { id: 'spotifyUrl', title: 'Spotify URL' },
       ],
       alwaysQuote: true,
     });
 
     await csvWriter.writeRecords(sortedTracks);
 
-    console.log(`\n💾 CSVファイルを出力したよ！ => ${path.resolve('momoclo_songs.csv')}`);
+    console.log(`\n💾 CSVファイルを出力したよ！ => ${path.resolve('./data/momoclo_songs.csv')}`);
     console.log(`全部で ${sortedTracks.length} 曲だったよ🔥 モノノフ最高〜！`);
 
   } catch (err) {
@@ -102,5 +122,4 @@ const getMomocloSongs = async () => {
   }
 };
 
-// 実行
 getMomocloSongs();

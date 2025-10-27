@@ -14,8 +14,15 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.868.0",
     "@aws-sdk/lib-dynamodb": "^3.868.0",
-    "@types/node": "^24.3.0",
+    "@types/node": "^24.9.1",
     "csv-parse": "^6.1.0",
-    "ts-node": "^10.9.2"
+    "csv-writer": "^1.6.0",
+    "dotenv": "^17.2.3",
+    "spotify-web-api-node": "^5.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/spotify-web-api-node": "^5.0.11"
   }
 }
