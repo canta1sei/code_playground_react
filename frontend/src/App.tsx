@@ -12,11 +12,12 @@ import {
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 
 import SongSelectionModal from './SongSelectionModal';
-import BingoGrid from './BingoGrid';
 import { SongCard } from './SongCard';
-import ShareImageModal from './ShareImageModal'; // コンポーネント名をShareImageModalに統一
+import ShareImageModal from './ShareImageModal';
+import { ControlPanel } from './ControlPanel';
+import { BingoCard } from './BingoCard';
 
-// 曲データの型を拡張
+// 曲データの型定義
 export type Song = {
   id: string; // dnd-kitで必須
   songId: string;
@@ -29,35 +30,55 @@ export type Song = {
 const initialSongs: Song[] = [];
 const colors: ('pink' | 'red' | 'yellow' | 'purple')[] = ['pink', 'red', 'yellow', 'purple'];
 
+/**
+ * アプリケーションのメインコンポーネント
+ * 全体の状態管理、API通信、ドラッグ＆ドロップのロジックなどを担当する
+ */
 function App() {
+  // --- STATE ---
+  // ビンゴカードに表示される曲のリスト
   const [songs, setSongs] = useState<Song[]>(initialSongs);
+  // APIから取得したすべての曲のリスト
   const [allSongs, setAllSongs] = useState<Song[]>([]);
+  // API通信中などのローディング状態
   const [isLoading, setIsLoading] = useState(false);
+  // カードの編集モード状態
   const [isEditing, setIsEditing] = useState(false);
+  // エラーメッセージ
   const [error, setError] = useState<string | null>(null);
+  // 曲選択モーダルの表示状態
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // 編集対象の曲ID
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
-  const [activeSong, setActiveSong] = useState<Song | null>(null); // ドラッグ中の曲を管理
-  const [userName, setUserName] = useState('ゲスト'); // New state for user name
-  
-  // 共有機能に関するStateを統一
-  const [isSharing, setIsSharing] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
+  // ドラッグ中の曲情報
+  const [activeSong, setActiveSong] = useState<Song | null>(null);
+  // ユーザー名
+  const [userName, setUserName] = useState('ゲスト');
+  // 画像共有モーダル関連のstate
+  const [isSharing, setIsSharing] = useState(false); // 画像生成中のローディング状態
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false); // モーダルの表示状態
+  const [shareImageUrl, setShareImageUrl] = useState<string | null>(null); // 生成した画像のURL
 
-  const cardContainerRef = useRef<HTMLDivElement>(null); // 画像化する範囲のrefを統一
+  // --- REFS ---
+  // 画像化するビンゴカードDOMへの参照
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+
+  // --- CONSTANTS ---
   const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT;
 
+  // --- dnd-kit SETUP ---
+  // ドラッグ＆ドロップのセンサー設定
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // 8px以上ドラッグしたら開始
       },
     }),
     useSensor(KeyboardSensor)
   );
 
-  // 初期ロード時に全曲リストを取得
+  // --- EFFECTS ---
+  // 初期レンダリング時にAPIから全曲リストを取得する
   useEffect(() => {
     const fetchAllSongs = async () => {
       if (!API_BASE_URL) return;
@@ -78,6 +99,10 @@ function App() {
     fetchAllSongs();
   }, [API_BASE_URL]);
 
+  // --- HANDLERS ---
+  /**
+   * APIにリクエストして新しいビンゴカードを生成する
+   */
   const handleGenerate = async () => {
     setIsLoading(true);
     setError(null);
@@ -114,6 +139,10 @@ function App() {
     }
   };
 
+  /**
+   * 編集モード時にセルをクリックした際の処理
+   * @param id 編集対象の曲ID
+   */
   const handleEditCell = (id: string) => {
     if (isEditing) {
       setEditingSongId(id);
@@ -121,6 +150,10 @@ function App() {
     }
   };
 
+  /**
+   * 曲選択モーダルで曲を選択した際の処理
+   * @param song 選択された曲情報
+   */
   const handleSelectSong = (song: Song) => {
     if (editingSongId !== null) {
       setSongs(currentSongs => 
@@ -131,6 +164,9 @@ function App() {
     setEditingSongId(null);
   };
 
+  /**
+   * ドラッグ開始時の処理
+   */
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
     const song = songs.find(s => s.id === active.id);
@@ -141,6 +177,9 @@ function App() {
     if (grid) grid.style.overflow = "hidden";
   }
 
+  /**
+   * ドラッグ終了時の処理（曲の入れ替え）
+   */
   function handleDragEnd(event: DragEndEvent) {
     const grid = document.querySelector(".bingo-grid") as HTMLElement;
     if (grid) grid.style.overflow = "";
@@ -165,13 +204,18 @@ function App() {
     setActiveSong(null); // ドラッグ終了時にアクティブな曲をクリア
   }
 
+  /**
+   * ドラッグキャンセル時の処理
+   */
   function handleDragCancel() {
     const grid = document.querySelector(".bingo-grid") as HTMLElement;
     if (grid) grid.style.overflow = "";
     setActiveSong(null);
   }
 
-  // 共有ロジックをこの関数に統合
+  /**
+   * ビンゴカードを画像化して共有モーダルを開く処理
+   */
   const handleOpenShareModal = async () => {
     if (!cardContainerRef.current) {
       setError("ビンゴカードが見つかりません。");
@@ -200,6 +244,7 @@ function App() {
     }
   };
 
+  // --- RENDER ---
   return (
     <DndContext 
       sensors={sensors} 
@@ -209,7 +254,6 @@ function App() {
       onDragCancel={handleDragCancel}
     >
       <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4 font-sans">
-        {/* ▼画面サイズに依らずカード全体の幅を固定 */}
         <div className="w-[420px] mx-auto bg-white rounded-3xl shadow-lg p-6">
           
           <header className="text-center mb-6">
@@ -218,78 +262,37 @@ function App() {
               </h1>
           </header>
 
-          {songs.length === 0 && (
-            <>
-              <div className="mb-4">
-                  <label htmlFor="userName" className="block text-gray-700 text-sm font-bold mb-2">
-                    カードに記載される名前を入力:
-                  </label>
-                  <input
-                    type="text"
-                    id="userName"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="あなたの名前"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  />
-                </div>
+          {/* 操作ボタンエリア */}
+          <ControlPanel
+            isCardGenerated={songs.length > 0}
+            isLoading={isLoading}
+            isEditing={isEditing}
+            isSharing={isSharing}
+            userName={userName}
+            onGenerate={handleGenerate}
+            onToggleEdit={() => setIsEditing(!isEditing)}
+            onOpenShareModal={handleOpenShareModal}
+            onUserNameChange={setUserName}
+          />
 
-              <div className="flex justify-center gap-4 mb-6">
-                  <button onClick={handleGenerate} disabled={isLoading} className="control-button bg-pink-400 hover:bg-pink-500">
-                      {isLoading ? '生成中...' : 'カードを作成'}
-                  </button>
-              </div>
-            </>
-          )}
-
+          {/* エラー表示 */}
           {error && <p className="text-red-500 text-center mb-4">エラー: {error}</p>}
 
+          {/* ビンゴカードエリア（カード生成後に表示） */}
           {songs.length > 0 && (
-            <>
-              <div className="flex justify-center gap-4 mb-6">
-                  <button onClick={() => setIsEditing(!isEditing)} className="control-button bg-pink-400 hover:bg-pink-500">
-                      {isEditing ? '完了' : 'カードを編集'}
-                  </button>
-              </div>
-
-              {/* ▼③サイズ固定のため、固定幅w-[370px]に変更。余白もp-2に調整 */}
-              <div ref={cardContainerRef} className="w-[370px] mx-auto bg-pink-100 rounded-2xl shadow-inner p-2">
-                  <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
-                      <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
-                  </div>
-                  <BingoGrid
-                    songs={songs}
-                    isEditing={isEditing}
-                    onEditCell={handleEditCell}
-                  />
-                  <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
-                      <span className="text-cute">勝手にBINGO NIGHT</span>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={userName}
-                          onChange={(e) => setUserName(e.target.value)}
-                          className="bg-transparent border-b border-gray-400 focus:outline-none text-gray-600 text-xs md:text-sm w-24 text-right"
-                        />
-                      ) : (
-                        <span>Name: {userName}</span>
-                      )}
-                  </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <button
-                  onClick={handleOpenShareModal}
-                  disabled={isSharing}
-                  className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
-                >
-                  {isSharing ? '画像生成中...' : '画像をX（Twitter）にシェア'}
-                </button>
-              </div>
-            </>
+            <BingoCard
+              cardRef={cardContainerRef}
+              songs={songs}
+              isEditing={isEditing}
+              userName={userName}
+              onEditCell={handleEditCell}
+              onUserNameChange={setUserName}
+            />
           )}
 
         </div>
+
+        {/* 曲選択モーダル */}
         <SongSelectionModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -297,6 +300,8 @@ function App() {
           onSelectSong={handleSelectSong}
           currentSongs={songs}
         />
+
+        {/* 画像共有モーダル */}
         <ShareImageModal
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
@@ -304,6 +309,8 @@ function App() {
           tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #ももクロビンゴ #ももいろクローバーZ"
         />
       </div>
+
+      {/* ドラッグ中の要素の表示 */}
       <DragOverlay dropAnimation={null}>
         {activeSong ? (
           <SongCard 
