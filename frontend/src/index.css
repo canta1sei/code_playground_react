@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .bingo-grid {
-  /* touch-action: none; */
+  touch-action: none;
 }
 
 .line-clamp-3 {

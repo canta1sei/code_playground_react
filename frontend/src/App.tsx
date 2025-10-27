@@ -14,18 +14,9 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import SongSelectionModal from './SongSelectionModal';
 import { SongCard } from './SongCard';
 import ShareImageModal from './ShareImageModal';
-import { ControlPanel } from './ControlPanel';
+import { ControlPanel, ShareButton } from './ControlPanel';
 import { BingoCard } from './BingoCard';
-
-// 曲データの型定義
-export type Song = {
-  id: string; // dnd-kitで必須
-  songId: string;
-  title: string;
-  shortTitle?: string; // 略称を追加
-  color: 'pink' | 'red' | 'yellow' | 'purple';
-  isFreeSpot?: boolean;
-};
+import type { Song } from './types';
 
 const initialSongs: Song[] = [];
 const colors: ('pink' | 'red' | 'yellow' | 'purple')[] = ['pink', 'red', 'yellow', 'purple'];
@@ -70,8 +61,9 @@ function App() {
   // ドラッグ＆ドロップのセンサー設定
   const sensors = useSensors(
     useSensor(PointerSensor, {
+      // 8px以上ドラッグしたら開始することで、クリックやタップとの競合を防ぐ
       activationConstraint: {
-        distance: 8, // 8px以上ドラッグしたら開始
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor)
@@ -267,11 +259,9 @@ function App() {
             isCardGenerated={songs.length > 0}
             isLoading={isLoading}
             isEditing={isEditing}
-            isSharing={isSharing}
             userName={userName}
             onGenerate={handleGenerate}
             onToggleEdit={() => setIsEditing(!isEditing)}
-            onOpenShareModal={handleOpenShareModal}
             onUserNameChange={setUserName}
           />
 
@@ -280,14 +270,21 @@ function App() {
 
           {/* ビンゴカードエリア（カード生成後に表示） */}
           {songs.length > 0 && (
-            <BingoCard
-              cardRef={cardContainerRef}
-              songs={songs}
-              isEditing={isEditing}
-              userName={userName}
-              onEditCell={handleEditCell}
-              onUserNameChange={setUserName}
-            />
+            <>
+              <BingoCard
+                ref={cardContainerRef}
+                songs={songs}
+                isEditing={isEditing}
+                userName={userName}
+                onEditCell={handleEditCell}
+                onUserNameChange={setUserName}
+              />
+              {/* シェアボタン */}
+              <ShareButton
+                onClick={handleOpenShareModal}
+                disabled={isSharing}
+              />
+            </>
           )}
 
         </div>
