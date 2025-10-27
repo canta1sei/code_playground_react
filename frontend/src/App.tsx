@@ -221,6 +221,22 @@ function App() {
       setIsEditing(false);
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      // --- 画像の読み込みを待つ処理を追加 ---
+      const images = Array.from(cardContainerRef.current.getElementsByTagName('img'));
+      const promises = images.map(img => {
+        return new Promise<void>(resolve => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // エラー時もタイムアウトしないようにする
+          }
+        });
+      });
+
+      await Promise.all(promises);
+      // --- 修正ここまで ---
+
       // html-to-image を使ってコンテナをPNGのData URIに変換
       const dataUrl = await toPng(cardContainerRef.current, { cacheBust: true });
       
