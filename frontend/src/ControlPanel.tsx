@@ -10,11 +10,11 @@ interface ShareButtonProps {
  */
 export const ShareButton = ({ onClick, disabled }: ShareButtonProps) => {
   return (
-    <div className="mt-8 text-center">
+    <div className="mt-5 flex justify-center">
       <button
         onClick={onClick}
         disabled={disabled}
-        className="w-full py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+        className="w-5/6 py-3 px-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
       >
         {disabled ? '画像生成中...' : '画像をX（Twitter）にシェア'}
       </button>

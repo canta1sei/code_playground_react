@@ -266,8 +266,8 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4 font-sans">
-        <div className="w-[420px] mx-auto bg-white rounded-3xl shadow-lg p-6">
+      <div className="bg-pink-50 min-h-screen flex items-center justify-center p-1 font-sans">
+        <div className="w-[375px] mx-auto bg-white rounded-3xl shadow-lg p-1">
           
           <header className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
