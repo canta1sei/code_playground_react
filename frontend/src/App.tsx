@@ -265,17 +265,15 @@ function App() {
 
       await Promise.all(imagePromises);
 
-      // 2. さらに余裕を持って待機（スマホは遅いため）
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 1回目（捨てる）
+      await toPng(cardContainerRef.current, { cacheBust: false });
 
-      // 3. pixelRatioを指定してより高品質に
-      const dataUrl = await toPng(cardContainerRef.current, { 
-        cacheBust: false,  // キャッシュを使わない
-        pixelRatio: 2,    // Retina対応
-      });
+      // 少し待機
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      // 3. 画像埋め込み
+      const dataUrl = await toPng(cardContainerRef.current, {cacheBust: false});
+
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
       setIsShareModalOpen(true);
