@@ -44,7 +44,7 @@ export function SongCard({ song, isEditing, isOverlay }: Props) {
 
   const cardClasses = `
     aspect-square flex items-center justify-center p-1 rounded-lg text-center
-    text-[0.7rem] font-bold leading-tight whitespace-normal overflow-hidden
+    text-[0.6rem] font-bold leading-tight whitespace-normal overflow-hidden
     border-2
     transition-all duration-200
     ${songColorStyle.bg} ${songColorStyle.text} ${songColorStyle.border}
