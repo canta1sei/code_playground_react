@@ -124,6 +124,18 @@ function App() {
       ];
       setSongs(finalSongs);
 
+      // --- ビンゴカード表示後にダミー画像化を実行 ---
+      setTimeout(async () => {
+        if (cardContainerRef.current) {
+          try {
+            await toPng(cardContainerRef.current, { cacheBust: false });
+            console.log('事前キャッシュ完了');
+          } catch (err) {
+            console.log('事前キャッシュ失敗（共有時に再試行）', err);
+          }
+        }
+      }, 1000); // 1秒待ってから実行（画像読み込みの余裕を持たせる）
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
