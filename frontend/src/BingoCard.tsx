@@ -19,7 +19,7 @@ export const BingoCard = forwardRef<HTMLDivElement, Props>(
   ({ songs, isEditing, userName, onEditCell, onUserNameChange }, ref) => {
     return (
       // 第2引数のrefをdivのref属性に設定
-      <div ref={ref} className="w-[370px] mx-auto bg-pink-100 rounded-2xl shadow-inner p-2">
+      <div ref={ref} className="w-full mx-auto bg-pink-100 rounded-2xl shadow-inner p-1">
         {/* カードヘッダー画像 */}
         <div className="h-24 bg-pink-200 rounded-t-xl mb-4 flex items-center justify-center overflow-hidden">
           <img src="/BINGO_HEDDER.png" alt="Header" className="w-full h-full object-cover" />
@@ -32,7 +32,7 @@ export const BingoCard = forwardRef<HTMLDivElement, Props>(
         />
         {/* カードフッター */}
         <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
-          <span className="text-cute">勝手にBINGO NIGHT</span>
+          <span className="text-cute whitespace-nowrap">勝手にBINGO NIGHT!!</span>
           {/* 編集モードの場合は入力欄、そうでなければテキストを表示 */}
           {isEditing ? (
             <input

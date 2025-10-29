@@ -28,7 +28,7 @@ function ShareImageModal({ isOpen, onClose, imageUrl, tweetText }: Props) {
 
         <div className="p-6 text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-2">画像を保存してシェア！</h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-xs text-gray-600 mb-4">
             下の画像を長押し、または右クリックして保存してね！
           </p>
           {/* ▼あたり判定を広げるため、画像周囲の余白を削除 */}

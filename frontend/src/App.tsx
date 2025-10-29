@@ -237,10 +237,13 @@ function App() {
       await Promise.all(promises);
 
       // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 300)); // 300ms待機
+      await new Promise(resolve => setTimeout(resolve, 100)); // 300ms待機
 
       // html-to-image を使ってコンテナをPNGのData URIに変換
       const dataUrl = await toPng(cardContainerRef.current, { cacheBust: false });
+
+      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
+      await new Promise(resolve => setTimeout(resolve, 700)); // 300ms待機
       
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
@@ -263,12 +266,12 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="bg-pink-50 min-h-screen flex items-center justify-center p-4 font-sans">
-        <div className="w-[420px] mx-auto bg-white rounded-3xl shadow-lg p-6">
+      <div className="bg-pink-50 min-h-screen flex items-center justify-center font-sans px-1 py-6">
+        <div className="w-[375px] mx-auto bg-white rounded-3xl shadow-lg px-1 py-6">
           
           <header className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
-                  勝手にBINGONIGHT
+                  勝手にBINGONIGHT!!
               </h1>
           </header>
 
@@ -321,7 +324,7 @@ function App() {
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
           imageUrl={shareImageUrl}
-          tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #勝手にBINGO NIGHT #ももいろクローバーZ https://tdf-arena.com"
+          tweetText={`ももクロちゃんのビンゴカードで遊んでるよ！\n#勝手にBINGONIGHT #ももいろクローバーZ\nhttps://tdf-arena.com`}
         />
       </div>
 
