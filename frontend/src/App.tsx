@@ -124,6 +124,18 @@ function App() {
       ];
       setSongs(finalSongs);
 
+      // --- ビンゴカード表示後にダミー画像化を実行 ---
+      setTimeout(async () => {
+        if (cardContainerRef.current) {
+          try {
+            await toPng(cardContainerRef.current, { cacheBust: false });
+            console.log('事前キャッシュ完了');
+          } catch (err) {
+            console.log('事前キャッシュ失敗（共有時に再試行）', err);
+          }
+        }
+      }, 1000); // 1秒待ってから実行（画像読み込みの余裕を持たせる）
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -223,28 +235,45 @@ function App() {
 
       // --- 画像の読み込みを待つ処理を追加 ---
       const images = Array.from(cardContainerRef.current.getElementsByTagName('img'));
-      const promises = images.map(img => {
-        return new Promise<void>(resolve => {
-          if (img.complete) {
+      
+      // 1. 各画像の読み込みをタイムアウト付きで待つ
+      const imagePromises = images.map(img => {
+        return new Promise<void>((resolve) => {
+          if (img.complete && img.naturalHeight !== 0) {
+            // すでに読み込み済み
             resolve();
           } else {
-            img.onload = () => resolve();
-            img.onerror = () => resolve(); // エラー時もタイムアウトしないようにする
+            // タイムアウト設定（3秒）
+            const timeout = setTimeout(() => resolve(), 3000);
+            
+            img.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            img.onerror = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            
+            // 強制的に再読み込み（キャッシュ問題対策）
+            const src = img.src;
+            img.src = '';
+            img.src = src;
           }
         });
       });
 
-      await Promise.all(promises);
+      await Promise.all(imagePromises);
 
-      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 100)); // 300ms待機
+      // 1回目（捨てる）
+      await toPng(cardContainerRef.current, { cacheBust: false });
 
-      // html-to-image を使ってコンテナをPNGのData URIに変換
-      const dataUrl = await toPng(cardContainerRef.current, { cacheBust: false });
+      // 少し待機
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 700)); // 300ms待機
-      
+      // 3. 画像埋め込み
+      const dataUrl = await toPng(cardContainerRef.current, {cacheBust: false});
+
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
       setIsShareModalOpen(true);
