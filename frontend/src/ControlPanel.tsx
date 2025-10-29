@@ -73,6 +73,9 @@ export const ControlPanel = ({
               {isLoading ? '生成中...' : 'カードを作成'}
             </button>
           </div>
+          <p className="text-xs text-gray-500 text-center">
+            ※このツールは非公式です
+          </p>
         </>
       ) : (
         <>

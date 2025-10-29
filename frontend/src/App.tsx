@@ -271,7 +271,7 @@ function App() {
           
           <header className="text-center mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-pink-500 tracking-wider">
-                  勝手にBINGONIGHT
+                  勝手にBINGONIGHT!!
               </h1>
           </header>
 
@@ -324,7 +324,7 @@ function App() {
           isOpen={isShareModalOpen}
           onClose={() => setIsShareModalOpen(false)}
           imageUrl={shareImageUrl}
-          tweetText="ももクロちゃんのビンゴカードで遊んでるよ！ #勝手にBINGO NIGHT #ももいろクローバーZ https://tdf-arena.com"
+          tweetText={`ももクロちゃんのビンゴカードで遊んでるよ！\n#勝手にBINGONIGHT #ももいろクローバーZ\nhttps://tdf-arena.com`}
         />
       </div>
 
