@@ -270,7 +270,7 @@ function App() {
 
       // 3. pixelRatioを指定してより高品質に
       const dataUrl = await toPng(cardContainerRef.current, { 
-        cacheBust: true,  // キャッシュを使わない
+        cacheBust: false,  // キャッシュを使わない
         pixelRatio: 2,    // Retina対応
       });
 
