@@ -269,7 +269,7 @@ function App() {
       await toPng(cardContainerRef.current, { cacheBust: false });
 
       // 少し待機
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // 3. 画像埋め込み
       const dataUrl = await toPng(cardContainerRef.current, {cacheBust: false});
