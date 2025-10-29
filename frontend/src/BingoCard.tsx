@@ -32,7 +32,7 @@ export const BingoCard = forwardRef<HTMLDivElement, Props>(
         />
         {/* カードフッター */}
         <div className="mt-4 flex justify-between items-center bg-white/50 text-gray-600 text-xs md:text-sm px-4 py-2 rounded-b-xl">
-          <span className="text-cute">勝手にBINGO NIGHT!!</span>
+          <span className="text-cute whitespace-nowrap">勝手にBINGO NIGHT!!</span>
           {/* 編集モードの場合は入力欄、そうでなければテキストを表示 */}
           {isEditing ? (
             <input
