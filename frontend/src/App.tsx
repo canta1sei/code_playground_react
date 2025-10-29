@@ -237,10 +237,14 @@ function App() {
       await Promise.all(promises);
 
       // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 300)); // 300ms待機
+      await new Promise(resolve => setTimeout(resolve, 100)); // 300ms待機
 
       // html-to-image を使ってコンテナをPNGのData URIに変換
+      const dummydataUrl = await toPng(cardContainerRef.current, { cacheBust: false });
       const dataUrl = await toPng(cardContainerRef.current, { cacheBust: false });
+
+      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
+      await new Promise(resolve => setTimeout(resolve, 700)); // 300ms待機
       
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
