@@ -223,27 +223,46 @@ function App() {
 
       // --- 画像の読み込みを待つ処理を追加 ---
       const images = Array.from(cardContainerRef.current.getElementsByTagName('img'));
-      const promises = images.map(img => {
-        return new Promise<void>(resolve => {
-          if (img.complete) {
+      
+      // 1. 各画像の読み込みをタイムアウト付きで待つ
+      const imagePromises = images.map(img => {
+        return new Promise<void>((resolve) => {
+          if (img.complete && img.naturalHeight !== 0) {
+            // すでに読み込み済み
             resolve();
           } else {
-            img.onload = () => resolve();
-            img.onerror = () => resolve(); // エラー時もタイムアウトしないようにする
+            // タイムアウト設定（3秒）
+            const timeout = setTimeout(() => resolve(), 3000);
+            
+            img.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            img.onerror = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            
+            // 強制的に再読み込み（キャッシュ問題対策）
+            const src = img.src;
+            img.src = '';
+            img.src = src;
           }
         });
       });
 
-      await Promise.all(promises);
+      await Promise.all(imagePromises);
 
-      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 100)); // 300ms待機
+      // 2. さらに余裕を持って待機（スマホは遅いため）
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // html-to-image を使ってコンテナをPNGのData URIに変換
-      const dataUrl = await toPng(cardContainerRef.current, { cacheBust: false });
+      // 3. pixelRatioを指定してより高品質に
+      const dataUrl = await toPng(cardContainerRef.current, { 
+        cacheBust: true,  // キャッシュを使わない
+        pixelRatio: 2,    // Retina対応
+      });
 
-      // --- さらに待機時間を追加し、キャッシュ設定を変更 ---
-      await new Promise(resolve => setTimeout(resolve, 700)); // 300ms待機
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // バックエンドに送信せず、直接Data URIをStateに設定
       setShareImageUrl(dataUrl);
